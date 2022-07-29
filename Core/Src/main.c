@@ -21,7 +21,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "snake.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -100,16 +100,46 @@ int main(void)
   MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
   BSP_LCD_Init();
-  BSP_LCD_Clear(LCD_COLOR_WHITE);
-  BSP_LCD_SetTextColor(LCD_COLOR_RED);
-  BSP_LCD_FillCircle(120, 120, 60);
+
+  SnakeInit();
+  DrawSnake();
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+  enum Direction currentDirection = Right;
   while (1)
   {
+	  if (HAL_GPIO_ReadPin(JOY_UP_GPIO_Port, JOY_UP_Pin) &&
+			  currentDirection != Down)
+	  {
+		  currentDirection = Up;
+		  Move(Up);
+	  }
 
+	  if (HAL_GPIO_ReadPin(JOY_DOWN_GPIO_Port, JOY_DOWN_Pin) &&
+			  currentDirection != Up)
+	  {
+		  currentDirection = Down;
+		  Move(Down);
+	  }
+
+	  if (HAL_GPIO_ReadPin(JOY_RIGHT_GPIO_Port, JOY_RIGHT_Pin) &&
+			  currentDirection != Left)
+	  {
+		  currentDirection = Right;
+		  Move(Right);
+	  }
+
+	  if (HAL_GPIO_ReadPin(JOY_LEFT_GPIO_Port, JOY_LEFT_Pin) &&
+			  currentDirection != Right)
+	  {
+		  currentDirection = Left;
+		  Move(Left);
+	  }
+
+	  HAL_Delay(100);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
