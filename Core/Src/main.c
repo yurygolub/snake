@@ -138,16 +138,30 @@ int main(void)
 		  currentDirection = Left;
 	  }
 
-	  isDead = Move(currentDirection);
+	  enum GameState gameState = Move(currentDirection);
 
-	  if (isDead < 0)
+	  switch (gameState)
 	  {
-		  GameOver();
-		  while (!HAL_GPIO_ReadPin(JOY_SEL_GPIO_Port, JOY_SEL_Pin));
-		  SnakeInit();
-		  DrawSnake();
-		  DrawApple();
-		  currentDirection = Right;
+		case Winning:
+			Win();
+			while (!HAL_GPIO_ReadPin(JOY_SEL_GPIO_Port, JOY_SEL_Pin));
+			SnakeInit();
+			DrawSnake();
+			DrawApple();
+			currentDirection = Right;
+			break;
+
+		case Defeat:
+			GameOver();
+			while (!HAL_GPIO_ReadPin(JOY_SEL_GPIO_Port, JOY_SEL_Pin));
+			SnakeInit();
+			DrawSnake();
+			DrawApple();
+			currentDirection = Right;
+			break;
+
+		default:
+			break;
 	  }
 
 	  HAL_Delay(100);

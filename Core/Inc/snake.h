@@ -14,12 +14,20 @@ enum Direction
 	Right
 };
 
+enum GameState
+{
+	Winning,
+	Defeat,
+	None
+};
+
 void SnakeInit();
-int8_t Move(enum Direction direction);
+enum GameState Move(enum Direction direction);
 void DrawSnake();
 void DrawApple();
 void DrawPoint(struct Point point, uint16_t color);
 void GameOver();
+void Win();
 void GenerateApple();
 int8_t IsEqual(struct Point point1, struct Point point2);
 

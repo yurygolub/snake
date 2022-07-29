@@ -1,7 +1,9 @@
 #include "snake.h"
 
+#define BUFFER_SIZE 15
+
 static size_t snakeSize;
-static struct Point snakeBody[100];
+static struct Point snakeBody[BUFFER_SIZE];
 static const int16_t pointSize = 10;
 static struct Point apple;
 
@@ -22,7 +24,7 @@ void SnakeInit()
 	GenerateApple();
 }
 
-int8_t Move(enum Direction direction)
+enum GameState Move(enum Direction direction)
 {
 	struct Point head = snakeBody[snakeSize - 1];
 	switch (direction)
@@ -84,8 +86,14 @@ int8_t Move(enum Direction direction)
 		snakeSize++;
 		snakeBody[snakeSize - 1] = head;
 
-		GenerateApple();
 		DrawPoint(snakeBody[snakeSize - 1], LCD_COLOR_GREEN);
+
+		if (snakeSize == BUFFER_SIZE)
+		{
+			return Winning;
+		}
+
+		GenerateApple();
 		DrawApple();
 	}
 
@@ -101,7 +109,7 @@ int8_t Move(enum Direction direction)
 		{
 			if (IsEqual(head, snakeBody[i]))
 			{
-				return -1;
+				return Defeat;
 			}
 		}
 
@@ -111,7 +119,7 @@ int8_t Move(enum Direction direction)
 		DrawPoint(snakeBody[snakeSize - 1], LCD_COLOR_GREEN);
 	}
 
-	return 0;
+	return None;
 }
 
 void DrawSnake()
@@ -140,6 +148,14 @@ void GameOver()
 	BSP_LCD_SetFont(&Font24);
 	BSP_LCD_SetTextColor(LCD_COLOR_BLACK);
 	BSP_LCD_DisplayStringAt(0, 110, (uint8_t *)"Game over", CENTER_MODE);
+}
+
+void Win()
+{
+	BSP_LCD_Clear(LCD_COLOR_WHITE);
+	BSP_LCD_SetFont(&Font24);
+	BSP_LCD_SetTextColor(LCD_COLOR_BLACK);
+	BSP_LCD_DisplayStringAt(0, 110, (uint8_t *)"You win!", CENTER_MODE);
 }
 
 void GenerateApple()
