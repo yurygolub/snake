@@ -15,9 +15,9 @@ enum Direction
 };
 
 void SnakeInit();
-void Move(enum Direction direction);
+int8_t Move(enum Direction direction);
 void DrawSnake();
 void DrawPoint(struct Point point, uint16_t color);
-
+void GameOver();
 
 

@@ -111,32 +111,41 @@ int main(void)
   enum Direction currentDirection = Right;
   while (1)
   {
+	  int8_t res = 0;
 	  if (HAL_GPIO_ReadPin(JOY_UP_GPIO_Port, JOY_UP_Pin) &&
 			  currentDirection != Down)
 	  {
 		  currentDirection = Up;
-		  Move(Up);
+		  res = Move(Up);
 	  }
 
 	  if (HAL_GPIO_ReadPin(JOY_DOWN_GPIO_Port, JOY_DOWN_Pin) &&
 			  currentDirection != Up)
 	  {
 		  currentDirection = Down;
-		  Move(Down);
+		  res = Move(Down);
 	  }
 
 	  if (HAL_GPIO_ReadPin(JOY_RIGHT_GPIO_Port, JOY_RIGHT_Pin) &&
 			  currentDirection != Left)
 	  {
 		  currentDirection = Right;
-		  Move(Right);
+		  res = Move(Right);
 	  }
 
 	  if (HAL_GPIO_ReadPin(JOY_LEFT_GPIO_Port, JOY_LEFT_Pin) &&
 			  currentDirection != Right)
 	  {
 		  currentDirection = Left;
-		  Move(Left);
+		  res = Move(Left);
+	  }
+
+	  if (res < 0)
+	  {
+		  GameOver();
+		  while (!HAL_GPIO_ReadPin(JOY_SEL_GPIO_Port, JOY_SEL_Pin));
+		  SnakeInit();
+		  DrawSnake();
 	  }
 
 	  HAL_Delay(100);

@@ -16,7 +16,7 @@ void SnakeInit()
 	}
 }
 
-void Move(enum Direction direction)
+int8_t Move(enum Direction direction)
 {
 	struct Point tail = snakeBody[0];
 	for (size_t i = 0; i < snakeSize - 1; i++)
@@ -75,8 +75,19 @@ void Move(enum Direction direction)
 		break;
 	}
 
+	for (int i = 0; i < snakeSize - 1; i++)
+	{
+		struct Point head = snakeBody[snakeSize - 1];
+		if (head.x == snakeBody[i].x && head.y == snakeBody[i].y)
+		{
+			return -1;
+		}
+	}
+
 	DrawPoint(tail, LCD_COLOR_WHITE);
 	DrawPoint(snakeBody[snakeSize - 1], LCD_COLOR_GREEN);
+
+	return 0;
 }
 
 void DrawSnake()
@@ -93,3 +104,12 @@ void DrawPoint(struct Point point, uint16_t color)
 	BSP_LCD_SetTextColor(color);
 	BSP_LCD_FillRect(point.x * pointSize, point.y * pointSize, pointSize, pointSize);
 }
+
+void GameOver()
+{
+	BSP_LCD_Clear(LCD_COLOR_WHITE);
+	BSP_LCD_SetFont(&Font24);
+	BSP_LCD_SetTextColor(LCD_COLOR_BLACK);
+	BSP_LCD_DisplayStringAt(0, 110, (uint8_t *)"Game over", CENTER_MODE);
+}
+
