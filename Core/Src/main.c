@@ -103,6 +103,7 @@ int main(void)
 
   SnakeInit();
   DrawSnake();
+  DrawApple();
 
   /* USER CODE END 2 */
 
@@ -146,6 +147,8 @@ int main(void)
 		  while (!HAL_GPIO_ReadPin(JOY_SEL_GPIO_Port, JOY_SEL_Pin));
 		  SnakeInit();
 		  DrawSnake();
+		  DrawApple();
+		  currentDirection = Right;
 	  }
 
 	  HAL_Delay(100);
