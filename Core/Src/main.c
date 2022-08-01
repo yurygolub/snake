@@ -110,10 +110,8 @@ int main(void)
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   Direction currentDirection = Right;
-  while (1)
+  while (true)
   {
-	  int8_t isDead = 0;
-
 	  if (HAL_GPIO_ReadPin(JOY_UP_GPIO_Port, JOY_UP_Pin) &&
 			  currentDirection != Down)
 	  {

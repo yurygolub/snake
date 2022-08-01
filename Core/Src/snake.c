@@ -78,10 +78,10 @@ GameState Move(Direction direction)
 		break;
 	}
 
-	int8_t eat = 0;
+	bool eat = false;
 	if (IsEqual(head, apple))
 	{
-		eat = 1;
+		eat = true;
 		score++;
 		snakeSize++;
 		snakeBody[snakeSize - 1] = head;
@@ -166,16 +166,16 @@ void GenerateApple()
 {
 	int16_t xSize = BSP_LCD_GetXSize() / pointSize;
 	int16_t ySize = BSP_LCD_GetYSize() / pointSize;
-	while (1)
+	while (true)
 	{
-		int8_t generate = 0;
+		bool generate = false;
 		apple.X = rand() % xSize;
 		apple.Y = rand() % ySize;
 		for (size_t i = 0; i < snakeSize; i++)
 		{
 			if (IsEqual(apple, snakeBody[i]))
 			{
-				generate = 1;
+				generate = true;
 				break;
 			}
 		}
@@ -187,7 +187,7 @@ void GenerateApple()
 	}
 }
 
-int8_t IsEqual(Point point1, Point point2)
+bool IsEqual(Point point1, Point point2)
 {
 	if (point1.X == point2.X && point1.Y == point2.Y)
 	{
