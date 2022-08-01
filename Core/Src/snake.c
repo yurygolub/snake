@@ -1,11 +1,11 @@
 #include "snake.h"
 
-#define BUFFER_SIZE 15
+#define BUFFER_SIZE 25
 
 static size_t snakeSize;
-static struct Point snakeBody[BUFFER_SIZE];
+static Point snakeBody[BUFFER_SIZE];
 static const int16_t pointSize = 10;
-static struct Point apple;
+static Point apple;
 
 int16_t score;
 
@@ -17,62 +17,62 @@ void SnakeInit()
 	int16_t yStart = BSP_LCD_GetYSize() / pointSize / 2;
 	for (size_t i = 0; i < snakeSize; i++)
 	{
-		struct Point point = { xStart + i, yStart };
+		Point point = { xStart + i, yStart };
 		snakeBody[i] = point;
 	}
 
 	GenerateApple();
 }
 
-enum GameState Move(enum Direction direction)
+GameState Move(Direction direction)
 {
-	struct Point head = snakeBody[snakeSize - 1];
+	Point head = snakeBody[snakeSize - 1];
 	switch (direction)
 	{
 	case Up:
-		if (head.y - 1 >= 0)
+		if (head.Y - 1 >= 0)
 		{
-			head.y--;
+			head.Y--;
 		}
 		else
 		{
-			head.y = BSP_LCD_GetYSize() / pointSize - 1;
+			head.Y = BSP_LCD_GetYSize() / pointSize - 1;
 		}
 
 		break;
 
 	case Down:
-		if ((head.y + 1) * pointSize < BSP_LCD_GetYSize())
+		if ((head.Y + 1) * pointSize < BSP_LCD_GetYSize())
 		{
-			head.y++;
+			head.Y++;
 		}
 		else
 		{
-			head.y = 0;
+			head.Y = 0;
 		}
 
 		break;
 
 	case Right:
-		if ((head.x + 1) * pointSize < BSP_LCD_GetXSize())
+		if ((head.X + 1) * pointSize < BSP_LCD_GetXSize())
 		{
-			head.x++;
+			head.X++;
 		}
 		else
 		{
-			head.x = 0;
+			head.X = 0;
 		}
 
 		break;
 
 	case Left:
-		if (head.x - 1 >= 0)
+		if (head.X - 1 >= 0)
 		{
-			head.x--;
+			head.X--;
 		}
 		else
 		{
-			head.x = BSP_LCD_GetXSize() / pointSize - 1;
+			head.X = BSP_LCD_GetXSize() / pointSize - 1;
 		}
 
 		break;
@@ -99,7 +99,7 @@ enum GameState Move(enum Direction direction)
 
 	if (!eat)
 	{
-		struct Point tail = snakeBody[0];
+		Point tail = snakeBody[0];
 		for (size_t i = 0; i < snakeSize - 1; i++)
 		{
 			snakeBody[i] = snakeBody[i + 1];
@@ -136,10 +136,10 @@ void DrawApple()
 	DrawPoint(apple, LCD_COLOR_RED);
 }
 
-void DrawPoint(struct Point point, uint16_t color)
+void DrawPoint(Point point, uint16_t color)
 {
 	BSP_LCD_SetTextColor(color);
-	BSP_LCD_FillRect(point.x * pointSize, point.y * pointSize, pointSize, pointSize);
+	BSP_LCD_FillRect(point.X * pointSize, point.Y * pointSize, pointSize, pointSize);
 }
 
 void GameOver()
@@ -147,7 +147,11 @@ void GameOver()
 	BSP_LCD_Clear(LCD_COLOR_WHITE);
 	BSP_LCD_SetFont(&Font24);
 	BSP_LCD_SetTextColor(LCD_COLOR_BLACK);
-	BSP_LCD_DisplayStringAt(0, 110, (uint8_t *)"Game over", CENTER_MODE);
+
+	char result[32];
+	snprintf(result, 32, "Game over: %d", score);
+
+	BSP_LCD_DisplayStringAt(0, 110, (uint8_t *)result, CENTER_MODE);
 }
 
 void Win()
@@ -165,8 +169,8 @@ void GenerateApple()
 	while (1)
 	{
 		int8_t generate = 0;
-		apple.x = rand() % xSize;
-		apple.y = rand() % ySize;
+		apple.X = rand() % xSize;
+		apple.Y = rand() % ySize;
 		for (size_t i = 0; i < snakeSize; i++)
 		{
 			if (IsEqual(apple, snakeBody[i]))
@@ -183,9 +187,9 @@ void GenerateApple()
 	}
 }
 
-int8_t IsEqual(struct Point point1, struct Point point2)
+int8_t IsEqual(Point point1, Point point2)
 {
-	if (point1.x == point2.x && point1.y == point2.y)
+	if (point1.X == point2.X && point1.Y == point2.Y)
 	{
 		return 1;
 	}

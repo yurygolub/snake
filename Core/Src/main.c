@@ -109,7 +109,7 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  enum Direction currentDirection = Right;
+  Direction currentDirection = Right;
   while (1)
   {
 	  int8_t isDead = 0;
@@ -138,7 +138,7 @@ int main(void)
 		  currentDirection = Left;
 	  }
 
-	  enum GameState gameState = Move(currentDirection);
+	  GameState gameState = Move(currentDirection);
 
 	  switch (gameState)
 	  {
