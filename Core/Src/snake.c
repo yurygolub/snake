@@ -1,13 +1,21 @@
 #include "snake.h"
 
-#define BUFFER_SIZE 15
+#define BUFFER_SIZE 25
 
 static size_t snakeSize;
-static struct Point snakeBody[BUFFER_SIZE];
+static Point snakeBody[BUFFER_SIZE];
 static const int16_t pointSize = 10;
-static struct Point apple;
+static Point apple;
+
+extern RNG_HandleTypeDef hrng;
 
 int16_t score;
+
+static void GenerateApple();
+static void DrawSnake();
+static void DrawApple();
+static void DrawPoint(Point point, uint16_t color);
+static bool IsEqual(Point point1, Point point2);
 
 void SnakeInit()
 {
@@ -17,71 +25,72 @@ void SnakeInit()
 	int16_t yStart = BSP_LCD_GetYSize() / pointSize / 2;
 	for (size_t i = 0; i < snakeSize; i++)
 	{
-		struct Point point = { xStart + i, yStart };
-		snakeBody[i] = point;
+		snakeBody[i] = (Point){ .X = xStart + i, .Y = yStart };
 	}
 
 	GenerateApple();
+	DrawSnake();
+	DrawApple();
 }
 
-enum GameState Move(enum Direction direction)
+GameState Move(Direction direction)
 {
-	struct Point head = snakeBody[snakeSize - 1];
+	Point head = snakeBody[snakeSize - 1];
 	switch (direction)
 	{
 	case Up:
-		if (head.y - 1 >= 0)
+		if (head.Y - 1 >= 0)
 		{
-			head.y--;
+			head.Y--;
 		}
 		else
 		{
-			head.y = BSP_LCD_GetYSize() / pointSize - 1;
+			head.Y = BSP_LCD_GetYSize() / pointSize - 1;
 		}
 
 		break;
 
 	case Down:
-		if ((head.y + 1) * pointSize < BSP_LCD_GetYSize())
+		if ((head.Y + 1) * pointSize < BSP_LCD_GetYSize())
 		{
-			head.y++;
+			head.Y++;
 		}
 		else
 		{
-			head.y = 0;
+			head.Y = 0;
 		}
 
 		break;
 
 	case Right:
-		if ((head.x + 1) * pointSize < BSP_LCD_GetXSize())
+		if ((head.X + 1) * pointSize < BSP_LCD_GetXSize())
 		{
-			head.x++;
+			head.X++;
 		}
 		else
 		{
-			head.x = 0;
+			head.X = 0;
 		}
 
 		break;
 
 	case Left:
-		if (head.x - 1 >= 0)
+		if (head.X - 1 >= 0)
 		{
-			head.x--;
+			head.X--;
 		}
 		else
 		{
-			head.x = BSP_LCD_GetXSize() / pointSize - 1;
+			head.X = BSP_LCD_GetXSize() / pointSize - 1;
 		}
 
 		break;
 	}
 
-	int8_t eat = 0;
+	bool eat = false;
 	if (IsEqual(head, apple))
 	{
-		eat = 1;
+		eat = true;
 		score++;
 		snakeSize++;
 		snakeBody[snakeSize - 1] = head;
@@ -99,7 +108,7 @@ enum GameState Move(enum Direction direction)
 
 	if (!eat)
 	{
-		struct Point tail = snakeBody[0];
+		Point tail = snakeBody[0];
 		for (size_t i = 0; i < snakeSize - 1; i++)
 		{
 			snakeBody[i] = snakeBody[i + 1];
@@ -122,7 +131,7 @@ enum GameState Move(enum Direction direction)
 	return None;
 }
 
-void DrawSnake()
+static void DrawSnake()
 {
 	BSP_LCD_Clear(LCD_COLOR_WHITE);
 	for (size_t i = 0; i < snakeSize; i++)
@@ -131,15 +140,15 @@ void DrawSnake()
 	}
 }
 
-void DrawApple()
+static void DrawApple()
 {
 	DrawPoint(apple, LCD_COLOR_RED);
 }
 
-void DrawPoint(struct Point point, uint16_t color)
+static void DrawPoint(Point point, uint16_t color)
 {
 	BSP_LCD_SetTextColor(color);
-	BSP_LCD_FillRect(point.x * pointSize, point.y * pointSize, pointSize, pointSize);
+	BSP_LCD_FillRect(point.X * pointSize, point.Y * pointSize, pointSize, pointSize);
 }
 
 void GameOver()
@@ -147,7 +156,11 @@ void GameOver()
 	BSP_LCD_Clear(LCD_COLOR_WHITE);
 	BSP_LCD_SetFont(&Font24);
 	BSP_LCD_SetTextColor(LCD_COLOR_BLACK);
-	BSP_LCD_DisplayStringAt(0, 110, (uint8_t *)"Game over", CENTER_MODE);
+
+	char result[32];
+	snprintf(result, 32, "Game over: %d", score);
+
+	BSP_LCD_DisplayStringAt(0, 110, (uint8_t *)result, CENTER_MODE);
 }
 
 void Win()
@@ -158,39 +171,38 @@ void Win()
 	BSP_LCD_DisplayStringAt(0, 110, (uint8_t *)"You win!", CENTER_MODE);
 }
 
-void GenerateApple()
+static void GenerateApple()
 {
 	int16_t xSize = BSP_LCD_GetXSize() / pointSize;
 	int16_t ySize = BSP_LCD_GetYSize() / pointSize;
-	while (1)
+	while (true)
 	{
-		int8_t generate = 0;
-		apple.x = rand() % xSize;
-		apple.y = rand() % ySize;
+		bool isCollide = false;
+		uint32_t randomNumber;
+
+		HAL_RNG_GenerateRandomNumber(&hrng, &randomNumber);
+		apple.X = randomNumber % xSize;
+
+		HAL_RNG_GenerateRandomNumber(&hrng, &randomNumber);
+		apple.Y = randomNumber % ySize;
+
 		for (size_t i = 0; i < snakeSize; i++)
 		{
 			if (IsEqual(apple, snakeBody[i]))
 			{
-				generate = 1;
+				isCollide = true;
 				break;
 			}
 		}
 
-		if (!generate)
+		if (!isCollide)
 		{
 			return;
 		}
 	}
 }
 
-int8_t IsEqual(struct Point point1, struct Point point2)
+static bool IsEqual(Point point1, Point point2)
 {
-	if (point1.x == point2.x && point1.y == point2.y)
-	{
-		return 1;
-	}
-	else
-	{
-		return 0;
-	}
+	return point1.X == point2.X && point1.Y == point2.Y;
 }

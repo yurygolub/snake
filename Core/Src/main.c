@@ -42,6 +42,8 @@
 I2C_HandleTypeDef hi2c1;
 I2C_HandleTypeDef hi2c2;
 
+RNG_HandleTypeDef hrng;
+
 UART_HandleTypeDef huart2;
 
 SRAM_HandleTypeDef hsram1;
@@ -57,6 +59,7 @@ static void MX_FSMC_Init(void);
 static void MX_I2C1_Init(void);
 static void MX_I2C2_Init(void);
 static void MX_USART2_UART_Init(void);
+static void MX_RNG_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -98,22 +101,19 @@ int main(void)
   MX_I2C1_Init();
   MX_I2C2_Init();
   MX_USART2_UART_Init();
+  MX_RNG_Init();
   /* USER CODE BEGIN 2 */
   BSP_LCD_Init();
 
   SnakeInit();
-  DrawSnake();
-  DrawApple();
 
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  enum Direction currentDirection = Right;
-  while (1)
+  Direction currentDirection = Right;
+  while (true)
   {
-	  int8_t isDead = 0;
-
 	  if (HAL_GPIO_ReadPin(JOY_UP_GPIO_Port, JOY_UP_Pin) &&
 			  currentDirection != Down)
 	  {
@@ -138,7 +138,7 @@ int main(void)
 		  currentDirection = Left;
 	  }
 
-	  enum GameState gameState = Move(currentDirection);
+	  GameState gameState = Move(currentDirection);
 
 	  switch (gameState)
 	  {
@@ -146,8 +146,6 @@ int main(void)
 			Win();
 			while (!HAL_GPIO_ReadPin(JOY_SEL_GPIO_Port, JOY_SEL_Pin));
 			SnakeInit();
-			DrawSnake();
-			DrawApple();
 			currentDirection = Right;
 			break;
 
@@ -155,8 +153,6 @@ int main(void)
 			GameOver();
 			while (!HAL_GPIO_ReadPin(JOY_SEL_GPIO_Port, JOY_SEL_Pin));
 			SnakeInit();
-			DrawSnake();
-			DrawApple();
 			currentDirection = Right;
 			break;
 
@@ -286,6 +282,32 @@ static void MX_I2C2_Init(void)
   /* USER CODE BEGIN I2C2_Init 2 */
 
   /* USER CODE END I2C2_Init 2 */
+
+}
+
+/**
+  * @brief RNG Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_RNG_Init(void)
+{
+
+  /* USER CODE BEGIN RNG_Init 0 */
+
+  /* USER CODE END RNG_Init 0 */
+
+  /* USER CODE BEGIN RNG_Init 1 */
+
+  /* USER CODE END RNG_Init 1 */
+  hrng.Instance = RNG;
+  if (HAL_RNG_Init(&hrng) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN RNG_Init 2 */
+
+  /* USER CODE END RNG_Init 2 */
 
 }
 

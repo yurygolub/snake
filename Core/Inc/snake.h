@@ -1,33 +1,23 @@
+#pragma once
 #include "main.h"
 
-struct Point
-{
-	int16_t x;
-	int16_t y;
-};
-
-enum Direction
+typedef enum
 {
 	Up,
 	Down,
 	Left,
 	Right
-};
+}Direction;
 
-enum GameState
+typedef enum
 {
 	Winning,
 	Defeat,
 	None
-};
+}GameState;
 
 void SnakeInit();
-enum GameState Move(enum Direction direction);
-void DrawSnake();
-void DrawApple();
-void DrawPoint(struct Point point, uint16_t color);
+GameState Move(Direction direction);
 void GameOver();
 void Win();
-void GenerateApple();
-int8_t IsEqual(struct Point point1, struct Point point2);
 

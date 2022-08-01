@@ -34,6 +34,7 @@ extern "C" {
 #include "stdio.h"
 #include "stm32412g_discovery.h"
 #include "stm32412g_discovery_lcd.h"
+#include "stdbool.h"
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/
