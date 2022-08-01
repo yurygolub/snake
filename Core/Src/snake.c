@@ -7,6 +7,8 @@ static Point snakeBody[BUFFER_SIZE];
 static const int16_t pointSize = 10;
 static Point apple;
 
+extern RNG_HandleTypeDef hrng;
+
 int16_t score;
 
 void SnakeInit()
@@ -168,19 +170,25 @@ void GenerateApple()
 	int16_t ySize = BSP_LCD_GetYSize() / pointSize;
 	while (true)
 	{
-		bool generate = false;
-		apple.X = rand() % xSize;
-		apple.Y = rand() % ySize;
+		bool isCollide = false;
+		uint32_t randomNumber;
+
+		HAL_RNG_GenerateRandomNumber(&hrng, &randomNumber);
+		apple.X = randomNumber % xSize;
+
+		HAL_RNG_GenerateRandomNumber(&hrng, &randomNumber);
+		apple.Y = randomNumber % ySize;
+
 		for (size_t i = 0; i < snakeSize; i++)
 		{
 			if (IsEqual(apple, snakeBody[i]))
 			{
-				generate = true;
+				isCollide = true;
 				break;
 			}
 		}
 
-		if (!generate)
+		if (!isCollide)
 		{
 			return;
 		}
