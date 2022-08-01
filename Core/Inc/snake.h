@@ -18,11 +18,6 @@ typedef enum
 
 void SnakeInit();
 GameState Move(Direction direction);
-void DrawSnake();
-void DrawApple();
-void DrawPoint(Point point, uint16_t color);
 void GameOver();
 void Win();
-void GenerateApple();
-bool IsEqual(Point point1, Point point2);
 

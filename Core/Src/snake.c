@@ -11,6 +11,12 @@ extern RNG_HandleTypeDef hrng;
 
 int16_t score;
 
+static void GenerateApple();
+static void DrawSnake();
+static void DrawApple();
+static void DrawPoint(Point point, uint16_t color);
+static bool IsEqual(Point point1, Point point2);
+
 void SnakeInit()
 {
 	score = 0;
@@ -23,6 +29,8 @@ void SnakeInit()
 	}
 
 	GenerateApple();
+	DrawSnake();
+	DrawApple();
 }
 
 GameState Move(Direction direction)
@@ -123,7 +131,7 @@ GameState Move(Direction direction)
 	return None;
 }
 
-void DrawSnake()
+static void DrawSnake()
 {
 	BSP_LCD_Clear(LCD_COLOR_WHITE);
 	for (size_t i = 0; i < snakeSize; i++)
@@ -132,12 +140,12 @@ void DrawSnake()
 	}
 }
 
-void DrawApple()
+static void DrawApple()
 {
 	DrawPoint(apple, LCD_COLOR_RED);
 }
 
-void DrawPoint(Point point, uint16_t color)
+static void DrawPoint(Point point, uint16_t color)
 {
 	BSP_LCD_SetTextColor(color);
 	BSP_LCD_FillRect(point.X * pointSize, point.Y * pointSize, pointSize, pointSize);
@@ -163,7 +171,7 @@ void Win()
 	BSP_LCD_DisplayStringAt(0, 110, (uint8_t *)"You win!", CENTER_MODE);
 }
 
-void GenerateApple()
+static void GenerateApple()
 {
 	int16_t xSize = BSP_LCD_GetXSize() / pointSize;
 	int16_t ySize = BSP_LCD_GetYSize() / pointSize;
@@ -194,7 +202,7 @@ void GenerateApple()
 	}
 }
 
-bool IsEqual(Point point1, Point point2)
+static bool IsEqual(Point point1, Point point2)
 {
 	return point1.X == point2.X && point1.Y == point2.Y;
 }

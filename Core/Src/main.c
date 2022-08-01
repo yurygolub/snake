@@ -106,8 +106,6 @@ int main(void)
   BSP_LCD_Init();
 
   SnakeInit();
-  DrawSnake();
-  DrawApple();
 
   /* USER CODE END 2 */
 
@@ -148,8 +146,6 @@ int main(void)
 			Win();
 			while (!HAL_GPIO_ReadPin(JOY_SEL_GPIO_Port, JOY_SEL_Pin));
 			SnakeInit();
-			DrawSnake();
-			DrawApple();
 			currentDirection = Right;
 			break;
 
@@ -157,8 +153,6 @@ int main(void)
 			GameOver();
 			while (!HAL_GPIO_ReadPin(JOY_SEL_GPIO_Port, JOY_SEL_Pin));
 			SnakeInit();
-			DrawSnake();
-			DrawApple();
 			currentDirection = Right;
 			break;
 
