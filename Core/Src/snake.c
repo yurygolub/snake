@@ -10,6 +10,7 @@ static Point apple;
 extern RNG_HandleTypeDef hrng;
 
 int16_t score;
+int16_t bestScore = 0;
 
 static void GenerateApple();
 static void DrawSnake();
@@ -122,7 +123,7 @@ GameState Move(Direction direction)
 
 		snakeBody[snakeSize - 1] = head;
 
-		DrawPoint(tail, LCD_COLOR_WHITE, LCD_COLOR_WHITE);
+		DrawPoint(tail, LCD_COLOR_GRAY, LCD_COLOR_GRAY);
 		DrawPoint(snakeBody[snakeSize - 2], LCD_COLOR_ORANGE, LCD_COLOR_DARKYELLOW);
 		DrawPoint(snakeBody[snakeSize - 1], LCD_COLOR_BLUE, LCD_COLOR_DARKYELLOW);
 	}
@@ -132,7 +133,7 @@ GameState Move(Direction direction)
 
 static void DrawSnake()
 {
-	BSP_LCD_Clear(LCD_COLOR_WHITE);
+	BSP_LCD_Clear(LCD_COLOR_GRAY);
 	for (size_t i = 0; i < snakeSize - 1; i++)
 	{
 		DrawPoint(snakeBody[i], LCD_COLOR_ORANGE, LCD_COLOR_DARKYELLOW);
@@ -161,19 +162,30 @@ static void DrawPoint(Point point, uint16_t innerColor, uint16_t borderColor)
 
 void GameOver()
 {
-	BSP_LCD_Clear(LCD_COLOR_WHITE);
+	BSP_LCD_Clear(LCD_COLOR_GRAY);
+	BSP_LCD_SetBackColor(LCD_COLOR_GRAY);
 	BSP_LCD_SetFont(&Font24);
 	BSP_LCD_SetTextColor(LCD_COLOR_BLACK);
 
+	if (bestScore < score)
+	{
+		bestScore = score;
+	}
+
 	char result[32];
 	snprintf(result, 32, "Game over: %d", score);
-
 	BSP_LCD_DisplayStringAt(0, 110, (uint8_t *)result, CENTER_MODE);
+
+	BSP_LCD_SetFont(&Font20);
+	char tempStr[32];
+	snprintf(tempStr, 32, "Best score: %d", bestScore);
+	BSP_LCD_DisplayStringAt(10, 50, (uint8_t *)tempStr, LEFT_MODE);
 }
 
 void Win()
 {
-	BSP_LCD_Clear(LCD_COLOR_WHITE);
+	BSP_LCD_Clear(LCD_COLOR_GRAY);
+	BSP_LCD_SetBackColor(LCD_COLOR_GRAY);
 	BSP_LCD_SetFont(&Font24);
 	BSP_LCD_SetTextColor(LCD_COLOR_BLACK);
 	BSP_LCD_DisplayStringAt(0, 110, (uint8_t *)"You win!", CENTER_MODE);
