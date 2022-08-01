@@ -119,20 +119,17 @@ int main(void)
 	  {
 		  currentDirection = Up;
 	  }
-
-	  if (HAL_GPIO_ReadPin(JOY_DOWN_GPIO_Port, JOY_DOWN_Pin) &&
+	  else if (HAL_GPIO_ReadPin(JOY_DOWN_GPIO_Port, JOY_DOWN_Pin) &&
 			  currentDirection != Up)
 	  {
 		  currentDirection = Down;
 	  }
-
-	  if (HAL_GPIO_ReadPin(JOY_RIGHT_GPIO_Port, JOY_RIGHT_Pin) &&
+	  else if (HAL_GPIO_ReadPin(JOY_RIGHT_GPIO_Port, JOY_RIGHT_Pin) &&
 			  currentDirection != Left)
 	  {
 		  currentDirection = Right;
 	  }
-
-	  if (HAL_GPIO_ReadPin(JOY_LEFT_GPIO_Port, JOY_LEFT_Pin) &&
+	  else if (HAL_GPIO_ReadPin(JOY_LEFT_GPIO_Port, JOY_LEFT_Pin) &&
 			  currentDirection != Right)
 	  {
 		  currentDirection = Left;
@@ -160,7 +157,7 @@ int main(void)
 			break;
 	  }
 
-	  HAL_Delay(100);
+	  HAL_Delay(150);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
