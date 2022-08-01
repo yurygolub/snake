@@ -19,8 +19,7 @@ void SnakeInit()
 	int16_t yStart = BSP_LCD_GetYSize() / pointSize / 2;
 	for (size_t i = 0; i < snakeSize; i++)
 	{
-		Point point = { xStart + i, yStart };
-		snakeBody[i] = point;
+		snakeBody[i] = (Point){ .X = xStart + i, .Y = yStart };
 	}
 
 	GenerateApple();
@@ -197,12 +196,5 @@ void GenerateApple()
 
 bool IsEqual(Point point1, Point point2)
 {
-	if (point1.X == point2.X && point1.Y == point2.Y)
-	{
-		return 1;
-	}
-	else
-	{
-		return 0;
-	}
+	return point1.X == point2.X && point1.Y == point2.Y;
 }
