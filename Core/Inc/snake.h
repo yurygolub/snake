@@ -7,17 +7,18 @@ typedef enum
 	Down,
 	Left,
 	Right
-}Direction;
+}Direction_e;
 
 typedef enum
 {
 	Winning,
 	Defeat,
 	None
-}GameState;
+}GameState_e;
 
+void Setup(uint8_t pSize, uint8_t applesNumToWin);
 void SnakeInit();
-GameState Move(Direction direction);
+GameState_e Move(Direction_e direction);
 void GameOver();
 void Win();
 

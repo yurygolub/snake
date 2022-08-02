@@ -1,22 +1,29 @@
 #include "snake.h"
 
-#define BUFFER_SIZE 50
-
-static size_t snakeSize;
-static Point snakeBody[BUFFER_SIZE];
-static const int16_t pointSize = 20;
-static Point apple;
+#define BUFFER_SIZE 250
 
 extern RNG_HandleTypeDef hrng;
 
-int16_t score;
-int16_t bestScore = 0;
+static size_t snakeSize;
+static Point snakeBody[BUFFER_SIZE];
+static uint8_t pointSize = 20;
+static Point apple;
+static int16_t score;
+static int16_t bestScore = 0;
+
+static uint8_t applesNumberToWin = 50;
 
 static void GenerateApple();
 static void DrawSnake();
 static void DrawApple();
 static void DrawPoint(Point point, uint16_t innerColor, uint16_t borderColor);
 static bool IsEqual(Point point1, Point point2);
+
+void Setup(uint8_t pSize, uint8_t applesNumToWin)
+{
+	pointSize = pSize;
+	applesNumberToWin = applesNumToWin;
+}
 
 void SnakeInit()
 {
@@ -34,7 +41,7 @@ void SnakeInit()
 	DrawApple();
 }
 
-GameState Move(Direction direction)
+GameState_e Move(Direction_e direction)
 {
 	Point head = snakeBody[snakeSize - 1];
 	switch (direction)
@@ -94,10 +101,10 @@ GameState Move(Direction direction)
 		snakeSize++;
 		snakeBody[snakeSize - 1] = head;
 
-		DrawPoint(snakeBody[snakeSize - 2], LCD_COLOR_ORANGE, LCD_COLOR_DARKYELLOW);
-		DrawPoint(snakeBody[snakeSize - 1], LCD_COLOR_BLUE, LCD_COLOR_DARKYELLOW);
+		DrawPoint(snakeBody[snakeSize - 2], LCD_COLOR_DARKMAGENTA, LCD_COLOR_DARKYELLOW);
+		DrawPoint(snakeBody[snakeSize - 1], LCD_COLOR_DARKBLUE, LCD_COLOR_DARKYELLOW);
 
-		if (snakeSize == BUFFER_SIZE)
+		if (snakeSize == applesNumberToWin)
 		{
 			return Winning;
 		}
@@ -124,8 +131,8 @@ GameState Move(Direction direction)
 		snakeBody[snakeSize - 1] = head;
 
 		DrawPoint(tail, LCD_COLOR_GRAY, LCD_COLOR_GRAY);
-		DrawPoint(snakeBody[snakeSize - 2], LCD_COLOR_ORANGE, LCD_COLOR_DARKYELLOW);
-		DrawPoint(snakeBody[snakeSize - 1], LCD_COLOR_BLUE, LCD_COLOR_DARKYELLOW);
+		DrawPoint(snakeBody[snakeSize - 2], LCD_COLOR_DARKMAGENTA, LCD_COLOR_DARKYELLOW);
+		DrawPoint(snakeBody[snakeSize - 1], LCD_COLOR_DARKBLUE, LCD_COLOR_DARKYELLOW);
 	}
 
 	return None;
@@ -136,10 +143,10 @@ static void DrawSnake()
 	BSP_LCD_Clear(LCD_COLOR_GRAY);
 	for (size_t i = 0; i < snakeSize - 1; i++)
 	{
-		DrawPoint(snakeBody[i], LCD_COLOR_ORANGE, LCD_COLOR_DARKYELLOW);
+		DrawPoint(snakeBody[i], LCD_COLOR_DARKMAGENTA, LCD_COLOR_DARKYELLOW);
 	}
 
-	DrawPoint(snakeBody[snakeSize - 1], LCD_COLOR_BLUE, LCD_COLOR_DARKYELLOW);
+	DrawPoint(snakeBody[snakeSize - 1], LCD_COLOR_DARKBLUE, LCD_COLOR_DARKYELLOW);
 }
 
 static void DrawApple()
@@ -177,9 +184,8 @@ void GameOver()
 	BSP_LCD_DisplayStringAt(0, 110, (uint8_t *)result, CENTER_MODE);
 
 	BSP_LCD_SetFont(&Font20);
-	char tempStr[32];
-	snprintf(tempStr, 32, "Best score: %d", bestScore);
-	BSP_LCD_DisplayStringAt(10, 50, (uint8_t *)tempStr, LEFT_MODE);
+	snprintf(result, 32, "Best: %d", bestScore);
+	BSP_LCD_DisplayStringAt(10, 50, (uint8_t *)result, LEFT_MODE);
 }
 
 void Win()
