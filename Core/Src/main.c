@@ -111,34 +111,37 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  Direction currentDirection = Right;
+  Direction_e currentDirection = Right;
+  bool moveFaster;
   while (true)
   {
+	  moveFaster = false;
 	  if (HAL_GPIO_ReadPin(JOY_UP_GPIO_Port, JOY_UP_Pin) &&
 			  currentDirection != Down)
 	  {
+		  moveFaster = currentDirection == Up;
 		  currentDirection = Up;
 	  }
-
-	  if (HAL_GPIO_ReadPin(JOY_DOWN_GPIO_Port, JOY_DOWN_Pin) &&
+	  else if (HAL_GPIO_ReadPin(JOY_DOWN_GPIO_Port, JOY_DOWN_Pin) &&
 			  currentDirection != Up)
 	  {
+		  moveFaster = currentDirection == Down;
 		  currentDirection = Down;
 	  }
-
-	  if (HAL_GPIO_ReadPin(JOY_RIGHT_GPIO_Port, JOY_RIGHT_Pin) &&
+	  else if (HAL_GPIO_ReadPin(JOY_RIGHT_GPIO_Port, JOY_RIGHT_Pin) &&
 			  currentDirection != Left)
 	  {
+		  moveFaster = currentDirection == Right;
 		  currentDirection = Right;
 	  }
-
-	  if (HAL_GPIO_ReadPin(JOY_LEFT_GPIO_Port, JOY_LEFT_Pin) &&
+	  else if (HAL_GPIO_ReadPin(JOY_LEFT_GPIO_Port, JOY_LEFT_Pin) &&
 			  currentDirection != Right)
 	  {
+		  moveFaster = currentDirection == Left;
 		  currentDirection = Left;
 	  }
 
-	  GameState gameState = Move(currentDirection);
+	  GameState_e gameState = Move(currentDirection);
 
 	  switch (gameState)
 	  {
@@ -160,7 +163,14 @@ int main(void)
 			break;
 	  }
 
-	  HAL_Delay(100);
+	  if (moveFaster)
+	  {
+		  HAL_Delay(75);
+	  }
+	  else
+	  {
+		  HAL_Delay(150);
+	  }
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
