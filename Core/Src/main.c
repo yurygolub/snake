@@ -105,72 +105,16 @@ int main(void)
   /* USER CODE BEGIN 2 */
   BSP_LCD_Init();
 
-  SnakeInit();
-
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  Direction_e currentDirection = Right;
-  bool moveFaster;
+
   while (true)
   {
-	  moveFaster = false;
-	  if (HAL_GPIO_ReadPin(JOY_UP_GPIO_Port, JOY_UP_Pin) &&
-			  currentDirection != Down)
-	  {
-		  moveFaster = currentDirection == Up;
-		  currentDirection = Up;
-	  }
-	  else if (HAL_GPIO_ReadPin(JOY_DOWN_GPIO_Port, JOY_DOWN_Pin) &&
-			  currentDirection != Up)
-	  {
-		  moveFaster = currentDirection == Down;
-		  currentDirection = Down;
-	  }
-	  else if (HAL_GPIO_ReadPin(JOY_RIGHT_GPIO_Port, JOY_RIGHT_Pin) &&
-			  currentDirection != Left)
-	  {
-		  moveFaster = currentDirection == Right;
-		  currentDirection = Right;
-	  }
-	  else if (HAL_GPIO_ReadPin(JOY_LEFT_GPIO_Port, JOY_LEFT_Pin) &&
-			  currentDirection != Right)
-	  {
-		  moveFaster = currentDirection == Left;
-		  currentDirection = Left;
-	  }
+	  DisplayMenuItems();
+	  ChooseMenuItem();
 
-	  GameState_e gameState = Move(currentDirection);
-
-	  switch (gameState)
-	  {
-		case Winning:
-			Win();
-			while (!HAL_GPIO_ReadPin(JOY_SEL_GPIO_Port, JOY_SEL_Pin));
-			SnakeInit();
-			currentDirection = Right;
-			break;
-
-		case Defeat:
-			GameOver();
-			while (!HAL_GPIO_ReadPin(JOY_SEL_GPIO_Port, JOY_SEL_Pin));
-			SnakeInit();
-			currentDirection = Right;
-			break;
-
-		default:
-			break;
-	  }
-
-	  if (moveFaster)
-	  {
-		  HAL_Delay(75);
-	  }
-	  else
-	  {
-		  HAL_Delay(150);
-	  }
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -630,7 +574,71 @@ static void MX_FSMC_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+void SnakeGame()
+{
+  SnakeInit();
+  Direction_e currentDirection = Right;
+  bool moveFaster;
+  while (true)
+  {
+	  moveFaster = false;
+	  if (HAL_GPIO_ReadPin(JOY_UP_GPIO_Port, JOY_UP_Pin) &&
+			  currentDirection != Down)
+	  {
+		  moveFaster = currentDirection == Up;
+		  currentDirection = Up;
+	  }
+	  else if (HAL_GPIO_ReadPin(JOY_DOWN_GPIO_Port, JOY_DOWN_Pin) &&
+			  currentDirection != Up)
+	  {
+		  moveFaster = currentDirection == Down;
+		  currentDirection = Down;
+	  }
+	  else if (HAL_GPIO_ReadPin(JOY_RIGHT_GPIO_Port, JOY_RIGHT_Pin) &&
+			  currentDirection != Left)
+	  {
+		  moveFaster = currentDirection == Right;
+		  currentDirection = Right;
+	  }
+	  else if (HAL_GPIO_ReadPin(JOY_LEFT_GPIO_Port, JOY_LEFT_Pin) &&
+			  currentDirection != Right)
+	  {
+		  moveFaster = currentDirection == Left;
+		  currentDirection = Left;
+	  }
 
+	  GameState_e gameState = Move(currentDirection);
+
+	  switch (gameState)
+	  {
+		case Winning:
+			Win();
+			while (!HAL_GPIO_ReadPin(JOY_SEL_GPIO_Port, JOY_SEL_Pin));
+			SnakeInit();
+			currentDirection = Right;
+			break;
+
+		case Defeat:
+			GameOver();
+			while (!HAL_GPIO_ReadPin(JOY_SEL_GPIO_Port, JOY_SEL_Pin));
+			SnakeInit();
+			currentDirection = Right;
+			break;
+
+		default:
+			break;
+	  }
+
+	  if (moveFaster)
+	  {
+		  HAL_Delay(75);
+	  }
+	  else
+	  {
+		  HAL_Delay(150);
+	  }
+  }
+}
 /* USER CODE END 4 */
 
 /**
