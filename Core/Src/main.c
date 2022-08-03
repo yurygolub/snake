@@ -51,7 +51,7 @@ UART_HandleTypeDef huart2;
 SRAM_HandleTypeDef hsram1;
 
 /* USER CODE BEGIN PV */
-
+volatile bool timerFlag = false;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/

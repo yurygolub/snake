@@ -7,5 +7,4 @@ typedef struct
 	char* name;
 }MenuItem;
 
-void DisplayMenuItems();
-void ChooseMenuItem();
+void DisplayMenu();
