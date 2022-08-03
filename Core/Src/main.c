@@ -44,12 +44,14 @@ I2C_HandleTypeDef hi2c2;
 
 RNG_HandleTypeDef hrng;
 
+TIM_HandleTypeDef htim6;
+
 UART_HandleTypeDef huart2;
 
 SRAM_HandleTypeDef hsram1;
 
 /* USER CODE BEGIN PV */
-
+volatile bool timerFlag = false;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -60,6 +62,7 @@ static void MX_I2C1_Init(void);
 static void MX_I2C2_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_RNG_Init(void);
+static void MX_TIM6_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -102,75 +105,19 @@ int main(void)
   MX_I2C2_Init();
   MX_USART2_UART_Init();
   MX_RNG_Init();
+  MX_TIM6_Init();
   /* USER CODE BEGIN 2 */
   BSP_LCD_Init();
-
-  SnakeInit();
-
+  HAL_TIM_Base_Start_IT(&htim6);
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  Direction_e currentDirection = Right;
-  bool moveFaster;
+
   while (true)
   {
-	  moveFaster = false;
-	  if (HAL_GPIO_ReadPin(JOY_UP_GPIO_Port, JOY_UP_Pin) &&
-			  currentDirection != Down)
-	  {
-		  moveFaster = currentDirection == Up;
-		  currentDirection = Up;
-	  }
-	  else if (HAL_GPIO_ReadPin(JOY_DOWN_GPIO_Port, JOY_DOWN_Pin) &&
-			  currentDirection != Up)
-	  {
-		  moveFaster = currentDirection == Down;
-		  currentDirection = Down;
-	  }
-	  else if (HAL_GPIO_ReadPin(JOY_RIGHT_GPIO_Port, JOY_RIGHT_Pin) &&
-			  currentDirection != Left)
-	  {
-		  moveFaster = currentDirection == Right;
-		  currentDirection = Right;
-	  }
-	  else if (HAL_GPIO_ReadPin(JOY_LEFT_GPIO_Port, JOY_LEFT_Pin) &&
-			  currentDirection != Right)
-	  {
-		  moveFaster = currentDirection == Left;
-		  currentDirection = Left;
-	  }
+	  DisplayMenu();
 
-	  GameState_e gameState = Move(currentDirection);
-
-	  switch (gameState)
-	  {
-		case Winning:
-			Win();
-			while (!HAL_GPIO_ReadPin(JOY_SEL_GPIO_Port, JOY_SEL_Pin));
-			SnakeInit();
-			currentDirection = Right;
-			break;
-
-		case Defeat:
-			GameOver();
-			while (!HAL_GPIO_ReadPin(JOY_SEL_GPIO_Port, JOY_SEL_Pin));
-			SnakeInit();
-			currentDirection = Right;
-			break;
-
-		default:
-			break;
-	  }
-
-	  if (moveFaster)
-	  {
-		  HAL_Delay(75);
-	  }
-	  else
-	  {
-		  HAL_Delay(150);
-	  }
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -318,6 +265,44 @@ static void MX_RNG_Init(void)
   /* USER CODE BEGIN RNG_Init 2 */
 
   /* USER CODE END RNG_Init 2 */
+
+}
+
+/**
+  * @brief TIM6 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM6_Init(void)
+{
+
+  /* USER CODE BEGIN TIM6_Init 0 */
+
+  /* USER CODE END TIM6_Init 0 */
+
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+
+  /* USER CODE BEGIN TIM6_Init 1 */
+
+  /* USER CODE END TIM6_Init 1 */
+  htim6.Instance = TIM6;
+  htim6.Init.Prescaler = 7199;
+  htim6.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim6.Init.Period = 9;
+  htim6.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
+  if (HAL_TIM_Base_Init(&htim6) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim6, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM6_Init 2 */
+
+  /* USER CODE END TIM6_Init 2 */
 
 }
 
@@ -630,7 +615,67 @@ static void MX_FSMC_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+void SnakeGame()
+{
+  SnakeInit();
+  Direction_e currentDirection = Right;
+  bool moveFaster;
+  while (true)
+  {
+	  moveFaster = false;
+	  if (HAL_GPIO_ReadPin(JOY_UP_GPIO_Port, JOY_UP_Pin) &&
+			  currentDirection != Down)
+	  {
+		  moveFaster = currentDirection == Up;
+		  currentDirection = Up;
+	  }
+	  else if (HAL_GPIO_ReadPin(JOY_DOWN_GPIO_Port, JOY_DOWN_Pin) &&
+			  currentDirection != Up)
+	  {
+		  moveFaster = currentDirection == Down;
+		  currentDirection = Down;
+	  }
+	  else if (HAL_GPIO_ReadPin(JOY_RIGHT_GPIO_Port, JOY_RIGHT_Pin) &&
+			  currentDirection != Left)
+	  {
+		  moveFaster = currentDirection == Right;
+		  currentDirection = Right;
+	  }
+	  else if (HAL_GPIO_ReadPin(JOY_LEFT_GPIO_Port, JOY_LEFT_Pin) &&
+			  currentDirection != Right)
+	  {
+		  moveFaster = currentDirection == Left;
+		  currentDirection = Left;
+	  }
 
+	  GameState_e gameState = Move(currentDirection);
+
+	  switch (gameState)
+	  {
+		case Winning:
+			Win();
+			while (!HAL_GPIO_ReadPin(JOY_SEL_GPIO_Port, JOY_SEL_Pin));
+			return;
+
+		case Defeat:
+			GameOver();
+			while (!HAL_GPIO_ReadPin(JOY_SEL_GPIO_Port, JOY_SEL_Pin));
+			return;
+
+		default:
+			break;
+	  }
+
+	  if (moveFaster)
+	  {
+		  HAL_Delay(75);
+	  }
+	  else
+	  {
+		  HAL_Delay(150);
+	  }
+  }
+}
 /* USER CODE END 4 */
 
 /**
