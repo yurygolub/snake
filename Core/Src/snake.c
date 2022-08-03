@@ -21,6 +21,7 @@ static bool IsEqual(Point point1, Point point2);
 
 void Setup(uint8_t pSize, uint8_t applesNumToWin)
 {
+	bestScore = 0;
 	pointSize = pSize;
 	applesNumberToWin = applesNumToWin;
 }

@@ -116,8 +116,7 @@ int main(void)
 
   while (true)
   {
-	  DisplayMenuItems();
-	  ChooseMenuItem();
+	  DisplayMenu();
 
     /* USER CODE END WHILE */
 
@@ -656,16 +655,12 @@ void SnakeGame()
 		case Winning:
 			Win();
 			while (!HAL_GPIO_ReadPin(JOY_SEL_GPIO_Port, JOY_SEL_Pin));
-			SnakeInit();
-			currentDirection = Right;
-			break;
+			return;
 
 		case Defeat:
 			GameOver();
 			while (!HAL_GPIO_ReadPin(JOY_SEL_GPIO_Port, JOY_SEL_Pin));
-			SnakeInit();
-			currentDirection = Right;
-			break;
+			return;
 
 		default:
 			break;
