@@ -19,6 +19,7 @@ static void DrawCursor(uint8_t xPos, uint8_t yPos, uint8_t radius);
 static const MenuItem menuItems[] =
 {
 	{ .name = "Play", .func = SnakeGame},
+	{ .name = "Life", .func = LifeGame},
 	{ .name = "Settings", .func = SettingsMenu},
 };
 
