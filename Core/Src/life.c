@@ -3,6 +3,7 @@
 #define FIELD_SIZE 40
 
 extern RNG_HandleTypeDef hrng;
+extern TIM_HandleTypeDef htim7;
 
 static bool field[FIELD_SIZE][FIELD_SIZE];
 static uint8_t pointSize;
@@ -22,8 +23,12 @@ void LifeGame()
 	HAL_Delay(200);
 	while (!HAL_GPIO_ReadPin(JOY_SEL_GPIO_Port, JOY_SEL_Pin))
 	{
+		char text[32];
+		uint16_t count = (uint16_t)htim7.Instance->CNT;
 		NextGeneration();
-		Redraw();
+		uint16_t elapsed = (uint16_t)htim7.Instance->CNT - count;
+		snprintf(text, 32, "%.2f ms", elapsed*0.01f);
+		Redraw(text);
 	}
 
 	HAL_Delay(100);
@@ -112,12 +117,17 @@ static void Render()
 	}
 }
 
-static void Redraw()
+static void Redraw(const char* text)
 {
 	for (size_t i = 0; i < FIELD_SIZE; i++)
 	{
 		for (size_t j = 0; j < FIELD_SIZE; j++)
 		{
+			if (i < 24 && j < 4)
+			{
+				continue;
+			}
+
 			if (field[i][j])
 			{
 				DrawPoint(i, j, LCD_COLOR_RED);
@@ -128,6 +138,11 @@ static void Redraw()
 			}
 		}
 	}
+
+	BSP_LCD_SetBackColor(LCD_COLOR_WHITE);
+	BSP_LCD_SetTextColor(LCD_COLOR_BLACK);
+	BSP_LCD_SetFont(&Font24);
+	BSP_LCD_DisplayStringAtLine(0, (uint8_t*)text);
 }
 
 static void DrawPoint(uint16_t xPos, uint16_t yPos, uint16_t color)
