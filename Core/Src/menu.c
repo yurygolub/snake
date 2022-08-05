@@ -5,66 +5,103 @@ extern volatile bool timerFlag;
 static bool rising = true;
 static uint8_t currentRadius = 0;
 
-static void Easy();
-static void Medium();
-static void Hard();
-static void SettingsMenu();
-static void DisplayMenuItems(const MenuItem* items, const uint8_t itemsCount);
-static void ChooseMenuItem(const MenuItem* items, const uint8_t itemsCount);
+static void SnakeMenu();
+static void SnakeSettingsMenu();
+static void SnakeSettingEasy();
+static void SnakeSettingMedium();
+static void SnakeSettingHard();
+
+static void LifeMenu();
+
+static void DisplayMenuItems(const MenuItem* items, const uint8_t itemsCount,
+		uint16_t backgroundColor, uint16_t textColor);
+static void ChooseMenuItem(const MenuItem* items, const uint8_t itemsCount,
+		uint16_t backgroundColor, uint16_t textColor, uint16_t cursorColor);
 
 static JOYState_TypeDef JoysticPosition(const uint8_t currentPos, const uint8_t numberOfItems);
-static void EraseCursor(uint8_t xPos, uint8_t yPos, uint8_t radius);
-static void DrawCursor(uint8_t xPos, uint8_t yPos, uint8_t radius);
+static void EraseCursor(uint8_t xPos, uint8_t yPos, uint8_t radius,
+		uint16_t backgroundColor);
+static void DrawCursor(uint8_t xPos, uint8_t yPos, uint8_t radius,
+		uint16_t color, uint16_t backgroundColor);
 
-static const MenuItem menuItems[] =
+static const MenuItem globalMenuItems[] =
 {
-	{ .name = "Play", .func = SnakeGame},
-	{ .name = "Life", .func = LifeGame},
-	{ .name = "Settings", .func = SettingsMenu},
+	{ .name = "Snake", .handler = SnakeMenu },
+	{ .name = "Life", .handler = LifeMenu },
 };
 
-#define NUMBER_OF_MENU_ITEMS (sizeof(menuItems) / sizeof(MenuItem))
+#define NUMBER_OF_GLOBAL_MENU_ITEMS (sizeof(globalMenuItems) / sizeof(MenuItem))
 
-static const MenuItem settingMenuItems[] =
+static const MenuItem snakeMenuItems[] =
 {
-	{ .name = "Easy", .func = Easy},
-	{ .name = "Medium", .func = Medium},
-	{ .name = "Hard", .func = Hard},
+	{ .name = "Play", .handler = SnakeGame },
+	{ .name = "Settings", .handler = SnakeSettingsMenu },
 };
 
-#define NUMBER_OF_SETTING_MENU_ITEMS (sizeof(settingMenuItems) / sizeof(MenuItem))
+#define NUMBER_OF_SNAKE_MENU_ITEMS (sizeof(snakeMenuItems) / sizeof(MenuItem))
+
+static const MenuItem snakeSettingMenuItems[] =
+{
+	{ .name = "Easy", .handler = SnakeSettingEasy },
+	{ .name = "Medium", .handler = SnakeSettingMedium },
+	{ .name = "Hard", .handler = SnakeSettingHard },
+};
+
+#define NUMBER_OF_SNAKE_SETTING_MENU_ITEMS (sizeof(snakeSettingMenuItems) / sizeof(MenuItem))
+
+static const MenuItem lifeMenuItems[] =
+{
+	{ .name = "Play", .handler = LifeGame },
+};
+
+#define NUMBER_OF_LIFE_MENU_ITEMS (sizeof(lifeMenuItems) / sizeof(MenuItem))
 
 void DisplayMenu()
 {
-	ChooseMenuItem(menuItems, NUMBER_OF_MENU_ITEMS);
+	ChooseMenuItem(globalMenuItems, NUMBER_OF_GLOBAL_MENU_ITEMS,
+			LCD_COLOR_GRAY, LCD_COLOR_BLACK, LCD_COLOR_DARKRED);
 }
 
-static void Easy()
+static void SnakeMenu()
+{
+	ChooseMenuItem(snakeMenuItems, NUMBER_OF_SNAKE_MENU_ITEMS,
+			LCD_COLOR_GRAY, LCD_COLOR_DARKMAGENTA, LCD_COLOR_DARKBLUE);
+}
+
+static void SnakeSettingsMenu()
+{
+	ChooseMenuItem(snakeSettingMenuItems, NUMBER_OF_SNAKE_SETTING_MENU_ITEMS,
+			LCD_COLOR_GRAY, LCD_COLOR_DARKMAGENTA, LCD_COLOR_DARKBLUE);
+}
+
+static void SnakeSettingEasy()
 {
 	Setup(20, 50);
 }
 
-static void Medium()
+static void SnakeSettingMedium()
 {
 	Setup(15, 100);
 }
 
-static void Hard()
+static void SnakeSettingHard()
 {
 	Setup(10, 200);
 }
 
-static void SettingsMenu()
+static void LifeMenu()
 {
-	ChooseMenuItem(settingMenuItems, NUMBER_OF_SETTING_MENU_ITEMS);
+	ChooseMenuItem(lifeMenuItems, NUMBER_OF_LIFE_MENU_ITEMS,
+			LCD_COLOR_DARKGRAY, LCD_COLOR_DARKYELLOW, LCD_COLOR_RED);
 }
 
-static void DisplayMenuItems(const MenuItem* items, const uint8_t itemsCount)
+static void DisplayMenuItems(const MenuItem* items, const uint8_t itemsCount,
+		uint16_t backgroundColor, uint16_t textColor)
 {
-	BSP_LCD_Clear(LCD_COLOR_WHITE);
+	BSP_LCD_Clear(backgroundColor);
 	BSP_LCD_SetFont(&Font24);
-	BSP_LCD_SetTextColor(LCD_COLOR_BLACK);
-	BSP_LCD_SetBackColor(LCD_COLOR_WHITE);
+	BSP_LCD_SetTextColor(textColor);
+	BSP_LCD_SetBackColor(backgroundColor);
 	for (size_t i = 0; i < itemsCount; i++)
 	{
 		BSP_LCD_DisplayStringAt(0, Font24.Height * (i + 1),
@@ -72,13 +109,14 @@ static void DisplayMenuItems(const MenuItem* items, const uint8_t itemsCount)
 	}
 }
 
-static void ChooseMenuItem(const MenuItem* items, const uint8_t itemsCount)
+static void ChooseMenuItem(const MenuItem* items, const uint8_t itemsCount,
+		uint16_t backgroundColor, uint16_t textColor, uint16_t cursorColor)
 {
-	DisplayMenuItems(items, itemsCount);
+	DisplayMenuItems(items, itemsCount, backgroundColor, textColor);
 
 	uint8_t xStart = 200;
 	uint8_t yStart = 36;
-	uint8_t radius = 6;
+	uint8_t radius = 8;
 	uint8_t currentPos = 0;
 	uint16_t cursorCounter = 0;
 	uint16_t joyCounter = 0;
@@ -95,7 +133,8 @@ static void ChooseMenuItem(const MenuItem* items, const uint8_t itemsCount)
 		if (cursorCounter == 40)
 		{
 			cursorCounter = 0;
-			DrawCursor(xStart, yStart + Font24.Height * currentPos, radius);
+			DrawCursor(xStart, yStart + Font24.Height * currentPos, radius,
+					cursorColor, backgroundColor);
 		}
 
 		if (joyCounter == 200)
@@ -105,19 +144,21 @@ static void ChooseMenuItem(const MenuItem* items, const uint8_t itemsCount)
 			switch (joyState)
 			{
 			case JOY_UP:
-				EraseCursor(xStart, yStart + Font24.Height * currentPos, radius);
+				EraseCursor(xStart, yStart + Font24.Height * currentPos, radius,
+						backgroundColor);
 				currentPos--;
 				break;
 
 			case JOY_DOWN:
-				EraseCursor(xStart, yStart + Font24.Height * currentPos, radius);
+				EraseCursor(xStart, yStart + Font24.Height * currentPos, radius,
+						backgroundColor);
 				currentPos++;
 				break;
 
 			case JOY_SEL:
-				if (items[currentPos].func != NULL)
+				if (items[currentPos].handler != NULL)
 				{
-					items[currentPos].func();
+					items[currentPos].handler();
 				}
 
 				return;
@@ -144,20 +185,22 @@ static JOYState_TypeDef JoysticPosition(const uint8_t currentPos, const uint8_t 
 	return JOY_NONE;
 }
 
-static void EraseCursor(uint8_t xPos, uint8_t yPos, uint8_t radius)
+static void EraseCursor(uint8_t xPos, uint8_t yPos, uint8_t radius,
+		uint16_t backgroundColor)
 {
-	BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
+	BSP_LCD_SetTextColor(backgroundColor);
 	BSP_LCD_FillCircle(xPos, yPos, radius);
 }
 
-static void DrawCursor(uint8_t xPos, uint8_t yPos, uint8_t radius)
+static void DrawCursor(uint8_t xPos, uint8_t yPos, uint8_t radius,
+		uint16_t color, uint16_t backgroundColor)
 {
 	if (rising)
 	{
 		if (currentRadius < radius)
 		{
 			currentRadius++;
-			BSP_LCD_SetTextColor(LCD_COLOR_BLACK);
+			BSP_LCD_SetTextColor(color);
 			BSP_LCD_FillCircle(xPos, yPos, currentRadius);
 		}
 		else
@@ -167,9 +210,9 @@ static void DrawCursor(uint8_t xPos, uint8_t yPos, uint8_t radius)
 	}
 	else
 	{
-		if (currentRadius > 0)
+		if (currentRadius > 1)
 		{
-			BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
+			BSP_LCD_SetTextColor(backgroundColor);
 			BSP_LCD_DrawCircle(xPos, yPos, currentRadius);
 			currentRadius--;
 		}

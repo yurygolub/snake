@@ -1,10 +1,11 @@
 #pragma once
 #include "main.h"
+#include "snake.h"
 #include "life.h"
 
 typedef struct
 {
-	void (*func)();
+	void (*handler)();
 	char* name;
 }MenuItem;
 
