@@ -1,20 +1,30 @@
 #include "life.h"
+#include "string.h"
 
+#define LOG_ENABLE
 #define FIELD_SIZE 40
 
 extern RNG_HandleTypeDef hrng;
 extern TIM_HandleTypeDef htim7;
 
-static bool field[FIELD_SIZE][FIELD_SIZE];
+static bool field[FIELD_SIZE * FIELD_SIZE];
+static bool newField[FIELD_SIZE * FIELD_SIZE];
 static uint8_t pointSize;
 static uint8_t density = 5;
 
 static void LifeInit();
 static void NextGeneration();
-static uint8_t CountNeighbours(uint16_t xPos, uint16_t yPos);
 static void Render();
+
+#ifndef LOG_ENABLE
 static void Redraw();
-static void DrawPoint(uint16_t xPos, uint16_t yPos, uint16_t color);
+#endif
+
+#ifdef LOG_ENABLE
+static void Redraw(const char* text);
+#endif
+
+static void DrawPoint(uint8_t xPos, uint8_t yPos, uint16_t color);
 
 void LifeGame()
 {
@@ -23,12 +33,19 @@ void LifeGame()
 	HAL_Delay(200);
 	while (!HAL_GPIO_ReadPin(JOY_SEL_GPIO_Port, JOY_SEL_Pin))
 	{
+#ifndef LOG_ENABLE
+		NextGeneration();
+		Redraw();
+#endif
+
+#ifdef LOG_ENABLE
 		char text[32];
 		uint16_t count = (uint16_t)htim7.Instance->CNT;
 		NextGeneration();
 		uint16_t elapsed = (uint16_t)htim7.Instance->CNT - count;
 		snprintf(text, 32, "%.2f ms", elapsed*0.01f);
 		Redraw(text);
+#endif
 	}
 
 	HAL_Delay(100);
@@ -39,114 +56,117 @@ static void LifeInit()
 	pointSize = BSP_LCD_GetXSize() / FIELD_SIZE;
 	uint32_t randomNumber;
 
-    for (size_t i = 0; i < FIELD_SIZE; i++)
+    for (size_t i = 0; i < FIELD_SIZE * FIELD_SIZE; i++)
     {
-        for (size_t j = 0; j < FIELD_SIZE; j++)
-        {
-    		HAL_RNG_GenerateRandomNumber(&hrng, &randomNumber);
-    		field[i][j] = randomNumber % density ? false : true;
-        }
+		HAL_RNG_GenerateRandomNumber(&hrng, &randomNumber);
+		field[i] = randomNumber % density ? false : true;
     }
 }
 
 static void NextGeneration()
 {
-	bool newField[FIELD_SIZE][FIELD_SIZE] = { false };
-	for (size_t i = 0; i < FIELD_SIZE; i++)
+	uint8_t countOfNeighbours;
+	for (uint16_t i = 0; i < FIELD_SIZE * FIELD_SIZE; i++)
 	{
-		for (size_t j = 0; j < FIELD_SIZE; j++)
+		countOfNeighbours = 0;
+
+		countOfNeighbours += field[(i - FIELD_SIZE - 1 + FIELD_SIZE * FIELD_SIZE) %
+									(FIELD_SIZE * FIELD_SIZE)];
+
+		countOfNeighbours += field[(i - FIELD_SIZE + FIELD_SIZE * FIELD_SIZE) %
+									(FIELD_SIZE * FIELD_SIZE)];
+
+		countOfNeighbours += field[(i - FIELD_SIZE + 1 + FIELD_SIZE * FIELD_SIZE) %
+									(FIELD_SIZE * FIELD_SIZE)];
+
+		countOfNeighbours += field[(i - 1 + FIELD_SIZE * FIELD_SIZE) %
+									(FIELD_SIZE * FIELD_SIZE)];
+
+		countOfNeighbours += field[(i + 1 + FIELD_SIZE * FIELD_SIZE) %
+									(FIELD_SIZE * FIELD_SIZE)];
+
+		countOfNeighbours += field[(i + FIELD_SIZE - 1 + FIELD_SIZE * FIELD_SIZE) %
+									(FIELD_SIZE * FIELD_SIZE)];
+
+		countOfNeighbours += field[(i + FIELD_SIZE + FIELD_SIZE * FIELD_SIZE) %
+									(FIELD_SIZE * FIELD_SIZE)];
+
+		countOfNeighbours += field[(i + FIELD_SIZE + 1 + FIELD_SIZE * FIELD_SIZE) %
+									(FIELD_SIZE * FIELD_SIZE)];
+
+		if (countOfNeighbours == 3)
 		{
-			uint8_t countOfNeighbours = CountNeighbours(i, j);
-			if (!field[i][j] && countOfNeighbours == 3)
-			{
-				newField[i][j] = true;
-			}
-			else if (field[i][j] && (countOfNeighbours < 2 || countOfNeighbours > 3))
-			{
-				newField[i][j] = false;
-			}
-			else
-			{
-				newField[i][j] = field[i][j];
-			}
+			newField[i] = true;
+		}
+		else if (countOfNeighbours < 2 || countOfNeighbours > 3)
+		{
+			newField[i] = false;
+		}
+		else
+		{
+			newField[i] = field[i];
 		}
 	}
 
-
-    for (size_t i = 0; i < FIELD_SIZE; i++)
-    {
-        for (size_t j = 0; j < FIELD_SIZE; j++)
-        {
-        	field[i][j] = newField[i][j];
-        }
-    }
-}
-
-static uint8_t CountNeighbours(uint16_t xPos, uint16_t yPos)
-{
-	int8_t count = 0;
-	for (int8_t i = -1; i < 2; i++)
-	{
-		for (int8_t j = -1; j < 2; j++)
-		{
-			uint16_t x = (xPos + i + FIELD_SIZE) % FIELD_SIZE;
-			uint16_t y = (yPos + j + FIELD_SIZE) % FIELD_SIZE;
-            bool isSelfChecking = xPos == x && yPos == y;
-            if (field[x][y] && !isSelfChecking)
-            {
-                count++;
-            }
-		}
-	}
-
-	return count;
+	memcpy(field, newField, FIELD_SIZE * FIELD_SIZE);
 }
 
 static void Render()
 {
 	BSP_LCD_Clear(LCD_COLOR_DARKGRAY);
-	for (size_t i = 0; i < FIELD_SIZE; i++)
+	for (uint16_t i = 0; i < FIELD_SIZE * FIELD_SIZE; i++)
 	{
-		for (size_t j = 0; j < FIELD_SIZE; j++)
+		if (field[i])
 		{
-			if (field[i][j])
-			{
-				DrawPoint(i, j, LCD_COLOR_RED);
-			}
+			DrawPoint(i % FIELD_SIZE, i / FIELD_SIZE, LCD_COLOR_RED);
 		}
 	}
 }
 
-static void Redraw(const char* text)
-{
-	for (size_t i = 0; i < FIELD_SIZE; i++)
-	{
-		for (size_t j = 0; j < FIELD_SIZE; j++)
-		{
-			if (i < 24 && j < 4)
-			{
-				continue;
-			}
+#ifndef LOG_ENABLE
+static void Redraw()
+#endif
 
-			if (field[i][j])
-			{
-				DrawPoint(i, j, LCD_COLOR_RED);
-			}
-			else
-			{
-				DrawPoint(i, j, LCD_COLOR_DARKGRAY);
-			}
+#ifdef LOG_ENABLE
+static void Redraw(const char* text)
+#endif
+{
+#ifdef LOG_ENABLE
+	uint8_t textWidth = Font16.Width * strlen(text) / pointSize + 1;
+	uint8_t textHeight = Font16.Height / pointSize + 1;
+#endif
+
+	uint8_t x, y;
+	for (uint16_t i = 0; i < FIELD_SIZE * FIELD_SIZE; i++)
+	{
+		x = i % FIELD_SIZE, y = i / FIELD_SIZE;
+#ifdef LOG_ENABLE
+		if (x < textWidth && y < textHeight)
+		{
+			continue;
+		}
+#endif
+
+		if (field[i])
+		{
+			DrawPoint(x, y, LCD_COLOR_RED);
+		}
+		else
+		{
+			DrawPoint(x, y, LCD_COLOR_DARKGRAY);
 		}
 	}
 
+#ifdef LOG_ENABLE
 	BSP_LCD_SetBackColor(LCD_COLOR_WHITE);
 	BSP_LCD_SetTextColor(LCD_COLOR_BLACK);
-	BSP_LCD_SetFont(&Font24);
-	BSP_LCD_DisplayStringAtLine(0, (uint8_t*)text);
+	BSP_LCD_SetFont(&Font16);
+	BSP_LCD_DisplayStringAt(0, 0, (uint8_t*)text, LEFT_MODE);
+#endif
 }
 
-static void DrawPoint(uint16_t xPos, uint16_t yPos, uint16_t color)
+static void DrawPoint(uint8_t xPos, uint8_t yPos, uint16_t color)
 {
 	BSP_LCD_SetTextColor(color);
-	BSP_LCD_FillRect(xPos * pointSize, yPos * pointSize, pointSize - 1, pointSize - 1);
+	BSP_LCD_FillRect(xPos * pointSize, yPos * pointSize, pointSize, pointSize);
 }
