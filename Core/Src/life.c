@@ -2,13 +2,16 @@
 #include "string.h"
 
 #define LOG_ENABLE
-#define FIELD_SIZE 40
+#define FIELD_SIZE 80
 
 extern RNG_HandleTypeDef hrng;
 extern TIM_HandleTypeDef htim7;
 
-static bool field[FIELD_SIZE * FIELD_SIZE];
-static bool newField[FIELD_SIZE * FIELD_SIZE];
+#define TYPE_SIZE 8
+#define ARRAY_SIZE (FIELD_SIZE * FIELD_SIZE / TYPE_SIZE)
+
+static uint8_t field[ARRAY_SIZE];
+static uint8_t newField[ARRAY_SIZE];
 static uint8_t pointSize;
 static uint8_t density = 5;
 
@@ -56,59 +59,60 @@ static void LifeInit()
 	pointSize = BSP_LCD_GetXSize() / FIELD_SIZE;
 	uint32_t randomNumber;
 
-    for (size_t i = 0; i < FIELD_SIZE * FIELD_SIZE; i++)
+    for (size_t i = 0; i < ARRAY_SIZE; i++)
     {
-		HAL_RNG_GenerateRandomNumber(&hrng, &randomNumber);
-		field[i] = randomNumber % density ? false : true;
+    	for (size_t j = 0; j < TYPE_SIZE; j++)
+    	{
+    		HAL_RNG_GenerateRandomNumber(&hrng, &randomNumber);
+    		field[i] ^= randomNumber % density ? 0 : (1 << j);
+		}
     }
 }
 
 static void NextGeneration()
 {
-	uint8_t countOfNeighbours;
 	for (uint16_t i = 0; i < FIELD_SIZE * FIELD_SIZE; i++)
 	{
-		countOfNeighbours = 0;
+		uint8_t countOfNeighbours = 0;
+		uint16_t index = (i - FIELD_SIZE - 1 + FIELD_SIZE * FIELD_SIZE) % (FIELD_SIZE * FIELD_SIZE);
+		countOfNeighbours += (field[index / TYPE_SIZE] & (1 << (index % TYPE_SIZE))) != 0;
 
-		countOfNeighbours += field[(i - FIELD_SIZE - 1 + FIELD_SIZE * FIELD_SIZE) %
-									(FIELD_SIZE * FIELD_SIZE)];
+		index = (i - FIELD_SIZE + FIELD_SIZE * FIELD_SIZE) % (FIELD_SIZE * FIELD_SIZE);
+		countOfNeighbours += (field[index / TYPE_SIZE] & (1 << (index % TYPE_SIZE))) != 0;
 
-		countOfNeighbours += field[(i - FIELD_SIZE + FIELD_SIZE * FIELD_SIZE) %
-									(FIELD_SIZE * FIELD_SIZE)];
+		index = (i - FIELD_SIZE + 1 + FIELD_SIZE * FIELD_SIZE) % (FIELD_SIZE * FIELD_SIZE);
+		countOfNeighbours += (field[index / TYPE_SIZE] & (1 << (index % TYPE_SIZE))) != 0;
 
-		countOfNeighbours += field[(i - FIELD_SIZE + 1 + FIELD_SIZE * FIELD_SIZE) %
-									(FIELD_SIZE * FIELD_SIZE)];
+		index = (i - 1 + FIELD_SIZE * FIELD_SIZE) % (FIELD_SIZE * FIELD_SIZE);
+		countOfNeighbours += (field[index / TYPE_SIZE] & (1 << (index % TYPE_SIZE))) != 0;
 
-		countOfNeighbours += field[(i - 1 + FIELD_SIZE * FIELD_SIZE) %
-									(FIELD_SIZE * FIELD_SIZE)];
+		index = (i + 1 + FIELD_SIZE * FIELD_SIZE) % (FIELD_SIZE * FIELD_SIZE);
+		countOfNeighbours += (field[index / TYPE_SIZE] & (1 << (index % TYPE_SIZE))) != 0;
 
-		countOfNeighbours += field[(i + 1 + FIELD_SIZE * FIELD_SIZE) %
-									(FIELD_SIZE * FIELD_SIZE)];
+		index = (i + FIELD_SIZE - 1 + FIELD_SIZE * FIELD_SIZE) % (FIELD_SIZE * FIELD_SIZE);
+		countOfNeighbours += (field[index / TYPE_SIZE] & (1 << (index % TYPE_SIZE))) != 0;
 
-		countOfNeighbours += field[(i + FIELD_SIZE - 1 + FIELD_SIZE * FIELD_SIZE) %
-									(FIELD_SIZE * FIELD_SIZE)];
+		index = (i + FIELD_SIZE + FIELD_SIZE * FIELD_SIZE) % (FIELD_SIZE * FIELD_SIZE);
+		countOfNeighbours += (field[index / TYPE_SIZE] & (1 << (index % TYPE_SIZE))) != 0;
 
-		countOfNeighbours += field[(i + FIELD_SIZE + FIELD_SIZE * FIELD_SIZE) %
-									(FIELD_SIZE * FIELD_SIZE)];
-
-		countOfNeighbours += field[(i + FIELD_SIZE + 1 + FIELD_SIZE * FIELD_SIZE) %
-									(FIELD_SIZE * FIELD_SIZE)];
+		index = (i + FIELD_SIZE + 1 + FIELD_SIZE * FIELD_SIZE) % (FIELD_SIZE * FIELD_SIZE);
+		countOfNeighbours += (field[index / TYPE_SIZE] & (1 << (index % TYPE_SIZE))) != 0;
 
 		if (countOfNeighbours == 3)
 		{
-			newField[i] = true;
+			newField[i / TYPE_SIZE] |= 1 << (i % TYPE_SIZE);
 		}
 		else if (countOfNeighbours < 2 || countOfNeighbours > 3)
 		{
-			newField[i] = false;
+			newField[i / TYPE_SIZE] &= ~(1 << (i % TYPE_SIZE));
 		}
 		else
 		{
-			newField[i] = field[i];
+			newField[i / TYPE_SIZE] |= field[i / TYPE_SIZE] & (1 << (i % TYPE_SIZE));
 		}
 	}
 
-	memcpy(field, newField, FIELD_SIZE * FIELD_SIZE);
+	memcpy(field, newField, ARRAY_SIZE);
 }
 
 static void Render()
@@ -116,7 +120,7 @@ static void Render()
 	BSP_LCD_Clear(LCD_COLOR_DARKGRAY);
 	for (uint16_t i = 0; i < FIELD_SIZE * FIELD_SIZE; i++)
 	{
-		if (field[i])
+		if (field[i / TYPE_SIZE] & (1 << (i % TYPE_SIZE)))
 		{
 			DrawPoint(i % FIELD_SIZE, i / FIELD_SIZE, LCD_COLOR_RED);
 		}
@@ -147,14 +151,7 @@ static void Redraw(const char* text)
 		}
 #endif
 
-		if (field[i])
-		{
-			DrawPoint(x, y, LCD_COLOR_RED);
-		}
-		else
-		{
-			DrawPoint(x, y, LCD_COLOR_DARKGRAY);
-		}
+		DrawPoint(x, y, field[i / TYPE_SIZE] & (1 << (i % TYPE_SIZE)) ? LCD_COLOR_RED : LCD_COLOR_DARKGRAY);
 	}
 
 #ifdef LOG_ENABLE
