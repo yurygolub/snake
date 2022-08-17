@@ -1,14 +1,16 @@
 #include "life.h"
 #include "string.h"
+#include "magic.h"
 
 #define LOG_ENABLE
-#define FIELD_SIZE 80
+#define FIELD_SIZE 40
+#define ADDED_FIELD_SIZE (FIELD_SIZE + 2)
 
 extern RNG_HandleTypeDef hrng;
 extern TIM_HandleTypeDef htim7;
 
 #define TYPE_SIZE 8
-#define ARRAY_SIZE (FIELD_SIZE * FIELD_SIZE / TYPE_SIZE)
+#define ARRAY_SIZE (ADDED_FIELD_SIZE * ADDED_FIELD_SIZE / TYPE_SIZE + 1)
 
 static uint8_t field[ARRAY_SIZE];
 static uint8_t newField[ARRAY_SIZE];
@@ -59,57 +61,74 @@ static void LifeInit()
 	pointSize = BSP_LCD_GetXSize() / FIELD_SIZE;
 	uint32_t randomNumber;
 
-    for (size_t i = 0; i < ARRAY_SIZE; i++)
+    for (size_t i = ADDED_FIELD_SIZE + 1; i < ADDED_FIELD_SIZE * ADDED_FIELD_SIZE - ADDED_FIELD_SIZE - 1; i++)
     {
-    	for (size_t j = 0; j < TYPE_SIZE; j++)
+    	if (i % ADDED_FIELD_SIZE == 0 || i % ADDED_FIELD_SIZE == ADDED_FIELD_SIZE - 1)
     	{
-    		HAL_RNG_GenerateRandomNumber(&hrng, &randomNumber);
-    		field[i] ^= randomNumber % density ? 0 : (1 << j);
+			continue;
 		}
+
+		HAL_RNG_GenerateRandomNumber(&hrng, &randomNumber);
+		field[i / TYPE_SIZE] ^= randomNumber % density ? 0 : (1 << (i % TYPE_SIZE));
     }
 }
 
 static void NextGeneration()
 {
-	for (uint16_t i = 0; i < FIELD_SIZE * FIELD_SIZE; i++)
+	uint16_t buffer = 0, index;
+	for (uint16_t i = ADDED_FIELD_SIZE + 1; i < ADDED_FIELD_SIZE * ADDED_FIELD_SIZE - ADDED_FIELD_SIZE - 1; i++)
 	{
-		uint8_t countOfNeighbours = 0;
-		uint16_t index = (i - FIELD_SIZE - 1 + FIELD_SIZE * FIELD_SIZE) % (FIELD_SIZE * FIELD_SIZE);
-		countOfNeighbours += (field[index / TYPE_SIZE] & (1 << (index % TYPE_SIZE))) != 0;
-
-		index = (i - FIELD_SIZE + FIELD_SIZE * FIELD_SIZE) % (FIELD_SIZE * FIELD_SIZE);
-		countOfNeighbours += (field[index / TYPE_SIZE] & (1 << (index % TYPE_SIZE))) != 0;
-
-		index = (i - FIELD_SIZE + 1 + FIELD_SIZE * FIELD_SIZE) % (FIELD_SIZE * FIELD_SIZE);
-		countOfNeighbours += (field[index / TYPE_SIZE] & (1 << (index % TYPE_SIZE))) != 0;
-
-		index = (i - 1 + FIELD_SIZE * FIELD_SIZE) % (FIELD_SIZE * FIELD_SIZE);
-		countOfNeighbours += (field[index / TYPE_SIZE] & (1 << (index % TYPE_SIZE))) != 0;
-
-		index = (i + 1 + FIELD_SIZE * FIELD_SIZE) % (FIELD_SIZE * FIELD_SIZE);
-		countOfNeighbours += (field[index / TYPE_SIZE] & (1 << (index % TYPE_SIZE))) != 0;
-
-		index = (i + FIELD_SIZE - 1 + FIELD_SIZE * FIELD_SIZE) % (FIELD_SIZE * FIELD_SIZE);
-		countOfNeighbours += (field[index / TYPE_SIZE] & (1 << (index % TYPE_SIZE))) != 0;
-
-		index = (i + FIELD_SIZE + FIELD_SIZE * FIELD_SIZE) % (FIELD_SIZE * FIELD_SIZE);
-		countOfNeighbours += (field[index / TYPE_SIZE] & (1 << (index % TYPE_SIZE))) != 0;
-
-		index = (i + FIELD_SIZE + 1 + FIELD_SIZE * FIELD_SIZE) % (FIELD_SIZE * FIELD_SIZE);
-		countOfNeighbours += (field[index / TYPE_SIZE] & (1 << (index % TYPE_SIZE))) != 0;
-
-		if (countOfNeighbours == 3)
-		{
-			newField[i / TYPE_SIZE] |= 1 << (i % TYPE_SIZE);
+    	if (i % ADDED_FIELD_SIZE == 0 || i % ADDED_FIELD_SIZE == ADDED_FIELD_SIZE - 1)
+    	{
+			continue;
 		}
-		else if (countOfNeighbours < 2 || countOfNeighbours > 3)
+
+    	if (i % ADDED_FIELD_SIZE == 1)
 		{
-			newField[i / TYPE_SIZE] &= ~(1 << (i % TYPE_SIZE));
+			index = i - ADDED_FIELD_SIZE - 1;
+			buffer |= ((field[index / TYPE_SIZE] & (1 << (index % TYPE_SIZE))) != 0);
+
+			index = i - 1;
+			buffer |= ((field[index / TYPE_SIZE] & (1 << (index % TYPE_SIZE))) != 0) << 1;
+
+			index = i + ADDED_FIELD_SIZE - 1;
+			buffer |= ((field[index / TYPE_SIZE] & (1 << (index % TYPE_SIZE))) != 0) << 2;
+
+			index = i - ADDED_FIELD_SIZE;
+			buffer |= ((field[index / TYPE_SIZE] & (1 << (index % TYPE_SIZE))) != 0) << 3;
+
+			buffer |= ((field[i / TYPE_SIZE] & (1 << (i % TYPE_SIZE))) != 0) << 4;
+
+			index = i + ADDED_FIELD_SIZE;
+			buffer |= ((field[index / TYPE_SIZE] & (1 << (index % TYPE_SIZE))) != 0) << 5;
+
+			index = i - ADDED_FIELD_SIZE + 1;
+			buffer |= ((field[index / TYPE_SIZE] & (1 << (index % TYPE_SIZE))) != 0) << 6;
+
+			index = i + 1;
+			buffer |= ((field[index / TYPE_SIZE] & (1 << (index % TYPE_SIZE))) != 0) << 7;
+
+			index = i + ADDED_FIELD_SIZE + 1;
+			buffer |= ((field[index / TYPE_SIZE] & (1 << (index % TYPE_SIZE))) != 0) << 8;
 		}
 		else
 		{
-			newField[i / TYPE_SIZE] |= field[i / TYPE_SIZE] & (1 << (i % TYPE_SIZE));
+			buffer >>= 3;
+
+			index = i - ADDED_FIELD_SIZE + 1;
+			buffer |= ((field[index / TYPE_SIZE] & (1 << (index % TYPE_SIZE))) != 0) << 6;
+
+			index = i + 1;
+			buffer |= ((field[index / TYPE_SIZE] & (1 << (index % TYPE_SIZE))) != 0) << 7;
+
+			index = i + ADDED_FIELD_SIZE + 1;
+			buffer |= ((field[index / TYPE_SIZE] & (1 << (index % TYPE_SIZE))) != 0) << 8;
 		}
+
+		uint8_t result = (magicArray[buffer / 8] & (1 << (buffer % 8))) != 0;
+
+		newField[i / TYPE_SIZE] = (newField[i / TYPE_SIZE] & ~(1 << (i % TYPE_SIZE))) |
+				(result << (i % TYPE_SIZE));
 	}
 
 	memcpy(field, newField, ARRAY_SIZE);
@@ -118,11 +137,17 @@ static void NextGeneration()
 static void Render()
 {
 	BSP_LCD_Clear(LCD_COLOR_DARKGRAY);
-	for (uint16_t i = 0; i < FIELD_SIZE * FIELD_SIZE; i++)
+	for (uint16_t i = ADDED_FIELD_SIZE + 1; i < ADDED_FIELD_SIZE * ADDED_FIELD_SIZE - ADDED_FIELD_SIZE - 1; i++)
 	{
+    	if (i % ADDED_FIELD_SIZE == 0 || i % ADDED_FIELD_SIZE == ADDED_FIELD_SIZE - 1)
+    	{
+			continue;
+		}
+
+    	uint16_t index = i - (ADDED_FIELD_SIZE + 1) - 2 * (i / ADDED_FIELD_SIZE - 1);
 		if (field[i / TYPE_SIZE] & (1 << (i % TYPE_SIZE)))
 		{
-			DrawPoint(i % FIELD_SIZE, i / FIELD_SIZE, LCD_COLOR_RED);
+			DrawPoint(index % FIELD_SIZE, index / FIELD_SIZE, LCD_COLOR_RED);
 		}
 	}
 }
@@ -141,9 +166,15 @@ static void Redraw(const char* text)
 #endif
 
 	uint8_t x, y;
-	for (uint16_t i = 0; i < FIELD_SIZE * FIELD_SIZE; i++)
+	for (uint16_t i = ADDED_FIELD_SIZE + 1; i < ADDED_FIELD_SIZE * ADDED_FIELD_SIZE - ADDED_FIELD_SIZE - 1; i++)
 	{
-		x = i % FIELD_SIZE, y = i / FIELD_SIZE;
+    	if (i % ADDED_FIELD_SIZE == 0 || i % ADDED_FIELD_SIZE == ADDED_FIELD_SIZE - 1)
+    	{
+			continue;
+		}
+
+    	uint16_t index = i - (ADDED_FIELD_SIZE + 1) - 2 * (i / ADDED_FIELD_SIZE - 1);
+		x = index % FIELD_SIZE, y = index / FIELD_SIZE;
 #ifdef LOG_ENABLE
 		if (x < textWidth && y < textHeight)
 		{
