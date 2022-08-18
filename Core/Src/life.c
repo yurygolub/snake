@@ -1,14 +1,20 @@
 #include "life.h"
 #include "string.h"
+#include "magic.h"
+#include "bit_banding.h"
 
 #define LOG_ENABLE
 #define FIELD_SIZE 40
+#define ADDED_FIELD_SIZE (FIELD_SIZE + 2)
 
 extern RNG_HandleTypeDef hrng;
 extern TIM_HandleTypeDef htim7;
 
-static bool field[FIELD_SIZE * FIELD_SIZE];
-static bool newField[FIELD_SIZE * FIELD_SIZE];
+#define TYPE_SIZE 8
+#define ARRAY_SIZE (ADDED_FIELD_SIZE * ADDED_FIELD_SIZE / TYPE_SIZE + 1)
+
+static uint8_t field[ARRAY_SIZE] = { 0 };
+static uint8_t newField[ARRAY_SIZE];
 static uint8_t pointSize;
 static uint8_t density = 5;
 
@@ -31,6 +37,7 @@ void LifeGame()
 	LifeInit();
 	Render();
 	HAL_Delay(200);
+
 	while (!HAL_GPIO_ReadPin(JOY_SEL_GPIO_Port, JOY_SEL_Pin))
 	{
 #ifndef LOG_ENABLE
@@ -44,6 +51,7 @@ void LifeGame()
 		NextGeneration();
 		uint16_t elapsed = (uint16_t)htim7.Instance->CNT - count;
 		snprintf(text, 32, "%.2f ms", elapsed*0.01f);
+
 		Redraw(text);
 #endif
 	}
@@ -56,69 +64,77 @@ static void LifeInit()
 	pointSize = BSP_LCD_GetXSize() / FIELD_SIZE;
 	uint32_t randomNumber;
 
-    for (size_t i = 0; i < FIELD_SIZE * FIELD_SIZE; i++)
+    for (uint16_t i = 1; i < ADDED_FIELD_SIZE - 1; i++)
     {
-		HAL_RNG_GenerateRandomNumber(&hrng, &randomNumber);
-		field[i] = randomNumber % density ? false : true;
+		for (uint16_t j = 1; j < ADDED_FIELD_SIZE - 1; j++)
+		{
+	    	uint16_t index = i * ADDED_FIELD_SIZE + j;
+			HAL_RNG_GenerateRandomNumber(&hrng, &randomNumber);
+			field[index / TYPE_SIZE] ^= randomNumber % density ? 0 : (1 << (index % TYPE_SIZE));
+		}
     }
 }
 
 static void NextGeneration()
 {
-	uint8_t countOfNeighbours;
-	for (uint16_t i = 0; i < FIELD_SIZE * FIELD_SIZE; i++)
+	for (uint16_t i = 1; i < ADDED_FIELD_SIZE - 1; i++)
 	{
-		countOfNeighbours = 0;
+		#define READ_FIELD_CELL(index) (BIT_BAND_SRAM(&field[(index) / TYPE_SIZE], (index) % TYPE_SIZE))
+		uint16_t buffer = 0;
+		uint16_t index = (i - 1) * ADDED_FIELD_SIZE;
+		buffer |= READ_FIELD_CELL(index);
 
-		countOfNeighbours += field[(i - FIELD_SIZE - 1 + FIELD_SIZE * FIELD_SIZE) %
-									(FIELD_SIZE * FIELD_SIZE)];
+		index = i * ADDED_FIELD_SIZE;
+		buffer |= READ_FIELD_CELL(index) << 1;
 
-		countOfNeighbours += field[(i - FIELD_SIZE + FIELD_SIZE * FIELD_SIZE) %
-									(FIELD_SIZE * FIELD_SIZE)];
+		index = (i + 1) * ADDED_FIELD_SIZE;
+		buffer |= READ_FIELD_CELL(index) << 2;
 
-		countOfNeighbours += field[(i - FIELD_SIZE + 1 + FIELD_SIZE * FIELD_SIZE) %
-									(FIELD_SIZE * FIELD_SIZE)];
+		index = (i - 1) * ADDED_FIELD_SIZE + 1;
+		buffer |= READ_FIELD_CELL(index) << 3;
 
-		countOfNeighbours += field[(i - 1 + FIELD_SIZE * FIELD_SIZE) %
-									(FIELD_SIZE * FIELD_SIZE)];
+		index = i * ADDED_FIELD_SIZE + 1;
+		buffer |= READ_FIELD_CELL(index) << 4;
 
-		countOfNeighbours += field[(i + 1 + FIELD_SIZE * FIELD_SIZE) %
-									(FIELD_SIZE * FIELD_SIZE)];
+		index = (i + 1) * ADDED_FIELD_SIZE + 1;
+		buffer |= READ_FIELD_CELL(index) << 5;
 
-		countOfNeighbours += field[(i + FIELD_SIZE - 1 + FIELD_SIZE * FIELD_SIZE) %
-									(FIELD_SIZE * FIELD_SIZE)];
-
-		countOfNeighbours += field[(i + FIELD_SIZE + FIELD_SIZE * FIELD_SIZE) %
-									(FIELD_SIZE * FIELD_SIZE)];
-
-		countOfNeighbours += field[(i + FIELD_SIZE + 1 + FIELD_SIZE * FIELD_SIZE) %
-									(FIELD_SIZE * FIELD_SIZE)];
-
-		if (countOfNeighbours == 3)
+		for (uint16_t j = 1; j < ADDED_FIELD_SIZE - 1; j++)
 		{
-			newField[i] = true;
+			index = (i - 1) * ADDED_FIELD_SIZE + j + 1;
+			buffer |= READ_FIELD_CELL(index) << 6;
+
+			index = i * ADDED_FIELD_SIZE + j + 1;
+			buffer |= READ_FIELD_CELL(index) << 7;
+
+			index = (i + 1) * ADDED_FIELD_SIZE + j + 1;
+			buffer |= READ_FIELD_CELL(index) << 8;
+
+			index = i * ADDED_FIELD_SIZE + j;
+			uint8_t result = (magicArray[buffer / 8] & (1 << (buffer % 8))) != 0;
+
+			BIT_BAND_SRAM(&newField[index / TYPE_SIZE], index % TYPE_SIZE) = result;
+
+			buffer >>= 3;
 		}
-		else if (countOfNeighbours < 2 || countOfNeighbours > 3)
-		{
-			newField[i] = false;
-		}
-		else
-		{
-			newField[i] = field[i];
-		}
+        #undef READ_FIELD_CELL
 	}
 
-	memcpy(field, newField, FIELD_SIZE * FIELD_SIZE);
+	memcpy(field, newField, ARRAY_SIZE);
 }
 
 static void Render()
 {
 	BSP_LCD_Clear(LCD_COLOR_DARKGRAY);
-	for (uint16_t i = 0; i < FIELD_SIZE * FIELD_SIZE; i++)
+	for (uint16_t i = 1; i < ADDED_FIELD_SIZE - 1; i++)
 	{
-		if (field[i])
+		for (uint16_t j = 1; j < ADDED_FIELD_SIZE - 1; j++)
 		{
-			DrawPoint(i % FIELD_SIZE, i / FIELD_SIZE, LCD_COLOR_RED);
+	    	uint16_t index = i * ADDED_FIELD_SIZE + j;
+			if (field[index / TYPE_SIZE] & (1 << (index % TYPE_SIZE)))
+			{
+				DrawPoint(j - 1, i - 1, LCD_COLOR_RED);
+			}
 		}
 	}
 }
@@ -131,42 +147,41 @@ static void Redraw()
 static void Redraw(const char* text)
 #endif
 {
-#ifdef LOG_ENABLE
+	#ifdef LOG_ENABLE
 	uint8_t textWidth = Font16.Width * strlen(text) / pointSize + 1;
 	uint8_t textHeight = Font16.Height / pointSize + 1;
-#endif
+	#endif
 
-	uint8_t x, y;
-	for (uint16_t i = 0; i < FIELD_SIZE * FIELD_SIZE; i++)
+	for (uint16_t i = 1; i < ADDED_FIELD_SIZE - 1; i++)
 	{
-		x = i % FIELD_SIZE, y = i / FIELD_SIZE;
-#ifdef LOG_ENABLE
-		if (x < textWidth && y < textHeight)
+		for (uint16_t j = 1; j < ADDED_FIELD_SIZE - 1; j++)
 		{
-			continue;
-		}
-#endif
+			#ifdef LOG_ENABLE
+			if (i - 1 < textHeight && j - 1 < textWidth)
+			{
+				continue;
+			}
+			#endif
 
-		if (field[i])
-		{
-			DrawPoint(x, y, LCD_COLOR_RED);
-		}
-		else
-		{
-			DrawPoint(x, y, LCD_COLOR_DARKGRAY);
+			uint16_t index = i * ADDED_FIELD_SIZE + j;
+			DrawPoint(j - 1, i - 1, field[index / TYPE_SIZE] & (1 << (index % TYPE_SIZE)) ? LCD_COLOR_RED : LCD_COLOR_DARKGRAY);
 		}
 	}
 
-#ifdef LOG_ENABLE
+	#ifdef LOG_ENABLE
 	BSP_LCD_SetBackColor(LCD_COLOR_WHITE);
 	BSP_LCD_SetTextColor(LCD_COLOR_BLACK);
 	BSP_LCD_SetFont(&Font16);
 	BSP_LCD_DisplayStringAt(0, 0, (uint8_t*)text, LEFT_MODE);
-#endif
+	#endif
 }
 
 static void DrawPoint(uint8_t xPos, uint8_t yPos, uint16_t color)
 {
 	BSP_LCD_SetTextColor(color);
+	#if FIELD_SIZE == 240
+	BSP_LCD_DrawPixel(xPos, yPos, color);
+	#else
 	BSP_LCD_FillRect(xPos * pointSize, yPos * pointSize, pointSize, pointSize);
+	#endif
 }
