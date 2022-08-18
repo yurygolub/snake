@@ -13,6 +13,25 @@ static int16_t bestScore = 0;
 
 static uint8_t applesNumberToWin = 50;
 
+typedef enum
+{
+	Up,
+	Down,
+	Left,
+	Right
+}Direction_e;
+
+typedef enum
+{
+	Winning,
+	Defeat,
+	None
+}GameState_e;
+
+static void SnakeInit();
+static GameState_e Move(Direction_e direction);
+static void GameOver();
+static void Win();
 static void GenerateApple();
 static void DrawSnake();
 static void DrawApple();
@@ -26,7 +45,69 @@ void Setup(uint8_t pSize, uint8_t applesNumToWin)
 	applesNumberToWin = applesNumToWin;
 }
 
-void SnakeInit()
+void SnakeGame()
+{
+	SnakeInit();
+	Direction_e currentDirection = Right;
+	bool moveFaster;
+	while (true)
+	{
+		moveFaster = false;
+		if (HAL_GPIO_ReadPin(JOY_UP_GPIO_Port, JOY_UP_Pin) &&
+				currentDirection != Down)
+		{
+			moveFaster = currentDirection == Up;
+			currentDirection = Up;
+		}
+		else if (HAL_GPIO_ReadPin(JOY_DOWN_GPIO_Port, JOY_DOWN_Pin) &&
+				currentDirection != Up)
+		{
+			moveFaster = currentDirection == Down;
+			currentDirection = Down;
+		}
+		else if (HAL_GPIO_ReadPin(JOY_RIGHT_GPIO_Port, JOY_RIGHT_Pin) &&
+				currentDirection != Left)
+		{
+			moveFaster = currentDirection == Right;
+			currentDirection = Right;
+		}
+		else if (HAL_GPIO_ReadPin(JOY_LEFT_GPIO_Port, JOY_LEFT_Pin) &&
+				currentDirection != Right)
+		{
+			moveFaster = currentDirection == Left;
+			currentDirection = Left;
+		}
+
+		GameState_e gameState = Move(currentDirection);
+
+		switch (gameState)
+		{
+		case Winning:
+			Win();
+			while (!HAL_GPIO_ReadPin(JOY_SEL_GPIO_Port, JOY_SEL_Pin));
+			return;
+
+		case Defeat:
+			GameOver();
+			while (!HAL_GPIO_ReadPin(JOY_SEL_GPIO_Port, JOY_SEL_Pin));
+			return;
+
+		default:
+			break;
+		}
+
+		if (moveFaster)
+		{
+			HAL_Delay(75);
+		}
+		else
+		{
+			HAL_Delay(150);
+		}
+	}
+}
+
+static void SnakeInit()
 {
 	score = 0;
 	snakeSize = 5;
@@ -42,7 +123,7 @@ void SnakeInit()
 	DrawApple();
 }
 
-GameState_e Move(Direction_e direction)
+static GameState_e Move(Direction_e direction)
 {
 	Point head = snakeBody[snakeSize - 1];
 	switch (direction)
@@ -168,7 +249,7 @@ static void DrawPoint(Point point, uint16_t innerColor, uint16_t borderColor)
 	BSP_LCD_DrawVLine(point.X * pointSize + pointSize - 1, point.Y * pointSize, pointSize);
 }
 
-void GameOver()
+static void GameOver()
 {
 	BSP_LCD_Clear(LCD_COLOR_GRAY);
 	BSP_LCD_SetBackColor(LCD_COLOR_GRAY);
@@ -189,7 +270,7 @@ void GameOver()
 	BSP_LCD_DisplayStringAt(10, 50, (uint8_t *)result, LEFT_MODE);
 }
 
-void Win()
+static void Win()
 {
 	BSP_LCD_Clear(LCD_COLOR_GRAY);
 	BSP_LCD_SetBackColor(LCD_COLOR_GRAY);

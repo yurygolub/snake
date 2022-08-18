@@ -1,9 +1,17 @@
 #include "menu.h"
+#include "snake.h"
+#include "life.h"
 
 extern volatile bool timerFlag;
 
 static bool rising = true;
 static uint8_t currentRadius = 0;
+
+typedef struct
+{
+	void (*handler)();
+	char* name;
+}MenuItem;
 
 static void SnakeMenu();
 static void SnakeSettingsMenu();
