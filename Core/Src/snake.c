@@ -3,6 +3,7 @@
 #define BUFFER_SIZE 250
 
 extern RNG_HandleTypeDef hrng;
+extern volatile bool timerFlag;
 
 static size_t snakeSize;
 static Point snakeBody[BUFFER_SIZE];
@@ -49,10 +50,41 @@ void SnakeGame()
 {
 	SnakeInit();
 	Direction_e currentDirection = Right;
-	bool moveFaster;
+	uint16_t counter = 0;
+	bool moveFaster = false;
 	while (true)
 	{
+		if (timerFlag)
+		{
+			timerFlag = false;
+			counter++;
+		}
+
+		if (moveFaster)
+		{
+			if (counter < 75)
+			{
+				continue;
+			}
+			else
+			{
+				counter = 0;
+			}
+		}
+		else
+		{
+			if (counter < 150)
+			{
+				continue;
+			}
+			else
+			{
+				counter = 0;
+			}
+		}
+
 		moveFaster = false;
+
 		if (HAL_GPIO_ReadPin(JOY_UP_GPIO_Port, JOY_UP_Pin) &&
 				currentDirection != Down)
 		{
@@ -94,15 +126,6 @@ void SnakeGame()
 
 		default:
 			break;
-		}
-
-		if (moveFaster)
-		{
-			HAL_Delay(75);
-		}
-		else
-		{
-			HAL_Delay(150);
 		}
 	}
 }
