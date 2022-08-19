@@ -2,10 +2,12 @@
 #include "string.h"
 #include "magic.h"
 #include "bit_banding.h"
+#include "st7789h2/st7789h2.h"
 
 #define LOG_ENABLE
-#define FIELD_SIZE 40
+#define FIELD_SIZE 120
 #define ADDED_FIELD_SIZE (FIELD_SIZE + 2)
+#define DENSITY 5
 
 extern RNG_HandleTypeDef hrng;
 extern TIM_HandleTypeDef htim7;
@@ -16,44 +18,42 @@ extern TIM_HandleTypeDef htim7;
 static uint8_t field[ARRAY_SIZE] = { 0 };
 static uint8_t newField[ARRAY_SIZE];
 static uint8_t pointSize;
-static uint8_t density = 5;
 
 static void LifeInit();
 static void NextGeneration();
-static void Render();
 
 #ifndef LOG_ENABLE
-static void Redraw();
+static void Render();
 #endif
 
 #ifdef LOG_ENABLE
-static void Redraw(const char* text);
+static void Render(const char* text);
 #endif
-
-static void DrawPoint(uint8_t xPos, uint8_t yPos, uint16_t color);
 
 void LifeGame()
 {
 	LifeInit();
-	Render();
+
 	HAL_Delay(200);
+
+	#ifdef LOG_ENABLE
+	char text[32] = { '\0' };
+	#endif
 
 	while (!HAL_GPIO_ReadPin(JOY_SEL_GPIO_Port, JOY_SEL_Pin))
 	{
-#ifndef LOG_ENABLE
+		#ifndef LOG_ENABLE
+		Render();
 		NextGeneration();
-		Redraw();
-#endif
+		#endif
 
-#ifdef LOG_ENABLE
-		char text[32];
+		#ifdef LOG_ENABLE
 		uint16_t count = (uint16_t)htim7.Instance->CNT;
+		Render(text);
 		NextGeneration();
 		uint16_t elapsed = (uint16_t)htim7.Instance->CNT - count;
 		snprintf(text, 32, "%.2f ms", elapsed*0.01f);
-
-		Redraw(text);
-#endif
+		#endif
 	}
 
 	HAL_Delay(100);
@@ -70,7 +70,7 @@ static void LifeInit()
 		{
 	    	uint16_t index = i * ADDED_FIELD_SIZE + j;
 			HAL_RNG_GenerateRandomNumber(&hrng, &randomNumber);
-			field[index / TYPE_SIZE] ^= randomNumber % density ? 0 : (1 << (index % TYPE_SIZE));
+			field[index / TYPE_SIZE] ^= randomNumber % DENSITY ? 0 : (1 << (index % TYPE_SIZE));
 		}
     }
 }
@@ -123,65 +123,123 @@ static void NextGeneration()
 	memcpy(field, newField, ARRAY_SIZE);
 }
 
-static void Render()
-{
-	BSP_LCD_Clear(LCD_COLOR_DARKGRAY);
-	for (uint16_t i = 1; i < ADDED_FIELD_SIZE - 1; i++)
-	{
-		for (uint16_t j = 1; j < ADDED_FIELD_SIZE - 1; j++)
-		{
-	    	uint16_t index = i * ADDED_FIELD_SIZE + j;
-			if (field[index / TYPE_SIZE] & (1 << (index % TYPE_SIZE)))
-			{
-				DrawPoint(j - 1, i - 1, LCD_COLOR_RED);
-			}
-		}
-	}
-}
-
-#ifndef LOG_ENABLE
-static void Redraw()
-#endif
-
 #ifdef LOG_ENABLE
-static void Redraw(const char* text)
-#endif
+#if FIELD_SIZE == 240
+static void Render(const char* text)
 {
-	#ifdef LOG_ENABLE
 	uint8_t textWidth = Font16.Width * strlen(text) / pointSize + 1;
 	uint8_t textHeight = Font16.Height / pointSize + 1;
-	#endif
 
-	for (uint16_t i = 1; i < ADDED_FIELD_SIZE - 1; i++)
-	{
-		for (uint16_t j = 1; j < ADDED_FIELD_SIZE - 1; j++)
-		{
-			#ifdef LOG_ENABLE
-			if (i - 1 < textHeight && j - 1 < textWidth)
-			{
-				continue;
-			}
-			#endif
-
-			uint16_t index = i * ADDED_FIELD_SIZE + j;
-			DrawPoint(j - 1, i - 1, field[index / TYPE_SIZE] & (1 << (index % TYPE_SIZE)) ? LCD_COLOR_RED : LCD_COLOR_DARKGRAY);
-		}
-	}
-
-	#ifdef LOG_ENABLE
 	BSP_LCD_SetBackColor(LCD_COLOR_WHITE);
 	BSP_LCD_SetTextColor(LCD_COLOR_BLACK);
 	BSP_LCD_SetFont(&Font16);
 	BSP_LCD_DisplayStringAt(0, 0, (uint8_t*)text, LEFT_MODE);
-	#endif
-}
 
-static void DrawPoint(uint8_t xPos, uint8_t yPos, uint16_t color)
-{
-	BSP_LCD_SetTextColor(color);
-	#if FIELD_SIZE == 240
-	BSP_LCD_DrawPixel(xPos, yPos, color);
-	#else
-	BSP_LCD_FillRect(xPos * pointSize, yPos * pointSize, pointSize, pointSize);
-	#endif
+	ST7789H2_SetCursor(0, 0);
+	LCD_IO_WriteReg(ST7789H2_WRITE_RAM);
+
+	for (uint16_t i = 1; i < ADDED_FIELD_SIZE - 1; i++)
+	{
+		if (i - 1 < textHeight)
+		{
+			ST7789H2_SetCursor(textWidth * pointSize, (i - 1) * pointSize);
+			LCD_IO_WriteReg(ST7789H2_WRITE_RAM);
+		}
+		else
+		{
+			ST7789H2_SetCursor(0, (i - 1) * pointSize);
+			LCD_IO_WriteReg(ST7789H2_WRITE_RAM);
+		}
+
+		for (uint16_t j = i - 1 < textHeight ? textWidth + 1 : 1;
+				j < ADDED_FIELD_SIZE - 1; j++)
+		{
+			uint16_t index = i * ADDED_FIELD_SIZE + j;
+			LCD_IO_WriteData(field[index / TYPE_SIZE] & (1 << (index % TYPE_SIZE))
+					? LCD_COLOR_RED : LCD_COLOR_DARKGRAY);
+		}
+	}
 }
+#else
+static void Render(const char* text)
+{
+	uint8_t textWidth = Font16.Width * strlen(text) / pointSize + 1;
+	uint8_t textHeight = Font16.Height / pointSize + 1;
+
+	BSP_LCD_SetBackColor(LCD_COLOR_WHITE);
+	BSP_LCD_SetTextColor(LCD_COLOR_BLACK);
+	BSP_LCD_SetFont(&Font16);
+	BSP_LCD_DisplayStringAt(0, 0, (uint8_t*)text, LEFT_MODE);
+
+	for (uint16_t i = 1; i < ADDED_FIELD_SIZE - 1; i++)
+	{
+		for (uint8_t k = 0;  k < pointSize; k++)
+		{
+			if (i - 1 < textHeight)
+			{
+				ST7789H2_SetCursor(textWidth * pointSize, (i - 1) * pointSize + k);
+				LCD_IO_WriteReg(ST7789H2_WRITE_RAM);
+			}
+			else
+			{
+				ST7789H2_SetCursor(0, (i - 1) * pointSize + k);
+				LCD_IO_WriteReg(ST7789H2_WRITE_RAM);
+			}
+
+			for (uint16_t j = i - 1 < textHeight ? textWidth + 1 : 1;
+					j < ADDED_FIELD_SIZE - 1; j++)
+			{
+				for (uint8_t m = 0;  m < pointSize; m++)
+				{
+					uint16_t index = i * ADDED_FIELD_SIZE + j;
+					LCD_IO_WriteData(field[index / TYPE_SIZE] & (1 << (index % TYPE_SIZE))
+							? LCD_COLOR_RED : LCD_COLOR_DARKGRAY);
+				}
+			}
+		}
+	}
+}
+#endif // FIELD_SIZE == 240
+#endif // LOG_ENABLE
+
+#ifndef LOG_ENABLE
+#if FIELD_SIZE == 240
+static void Render()
+{
+	ST7789H2_SetCursor(0, 0);
+	LCD_IO_WriteReg(ST7789H2_WRITE_RAM);
+
+	for (uint16_t i = 1; i < ADDED_FIELD_SIZE - 1; i++)
+	{
+		for (uint16_t j = 1; j < ADDED_FIELD_SIZE - 1; j++)
+		{
+			uint16_t index = i * ADDED_FIELD_SIZE + j;
+			LCD_IO_WriteData(field[index / TYPE_SIZE] & (1 << (index % TYPE_SIZE))
+					? LCD_COLOR_RED : LCD_COLOR_DARKGRAY);
+		}
+	}
+}
+#else
+static void Render()
+{
+	ST7789H2_SetCursor(0, 0);
+	LCD_IO_WriteReg(ST7789H2_WRITE_RAM);
+
+	for (uint16_t i = 1; i < ADDED_FIELD_SIZE - 1; i++)
+	{
+		for (uint8_t k = 0;  k < pointSize; k++)
+		{
+			for (uint16_t j = 1; j < ADDED_FIELD_SIZE - 1; j++)
+			{
+				for (uint8_t m = 0;  m < pointSize; m++)
+				{
+					uint16_t index = i * ADDED_FIELD_SIZE + j;
+					LCD_IO_WriteData(field[index / TYPE_SIZE] & (1 << (index % TYPE_SIZE))
+							? LCD_COLOR_RED : LCD_COLOR_DARKGRAY);
+				}
+			}
+		}
+	}
+}
+#endif // FIELD_SIZE == 240
+#endif // LOG_ENABLE
