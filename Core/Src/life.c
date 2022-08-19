@@ -4,13 +4,22 @@
 #include "bit_banding.h"
 #include "st7789h2/st7789h2.h"
 
-#define LOG_ENABLE
-#define FIELD_SIZE 120
+//#define LOG_ENABLE
+#define LOG_TO_UART
+
+#define FIELD_SIZE 240
 #define ADDED_FIELD_SIZE (FIELD_SIZE + 2)
 #define DENSITY 5
 
 extern RNG_HandleTypeDef hrng;
+
+#if defined (LOG_ENABLE) || defined (LOG_TO_UART)
 extern TIM_HandleTypeDef htim7;
+#endif
+
+#ifdef LOG_TO_UART
+extern UART_HandleTypeDef huart2;
+#endif
 
 #define TYPE_SIZE 8
 #define ARRAY_SIZE (ADDED_FIELD_SIZE * ADDED_FIELD_SIZE / TYPE_SIZE + 1)
@@ -36,23 +45,38 @@ void LifeGame()
 
 	HAL_Delay(200);
 
-	#ifdef LOG_ENABLE
-	char text[32] = { '\0' };
+	#if defined(LOG_ENABLE) || defined(LOG_TO_UART)
+	char text[16] = { '\0' };
 	#endif
 
 	while (!HAL_GPIO_ReadPin(JOY_SEL_GPIO_Port, JOY_SEL_Pin))
 	{
 		#ifndef LOG_ENABLE
+		#ifndef LOG_TO_UART
 		Render();
 		NextGeneration();
 		#endif
+		#endif
 
+		#ifndef LOG_ENABLE
+		#ifdef LOG_TO_UART
+		uint16_t count = (uint16_t)htim7.Instance->CNT;
+		Render();
+		NextGeneration();
+		uint16_t elapsed = (uint16_t)htim7.Instance->CNT - count;
+		snprintf(text, 16, "%.2f ms\n\r", elapsed * 0.01f);
+		HAL_UART_Transmit(&huart2, (const uint8_t*)text, sizeof(text), 1);
+		#endif
+		#endif
+
+		#ifndef LOG_TO_UART
 		#ifdef LOG_ENABLE
 		uint16_t count = (uint16_t)htim7.Instance->CNT;
 		Render(text);
 		NextGeneration();
 		uint16_t elapsed = (uint16_t)htim7.Instance->CNT - count;
-		snprintf(text, 32, "%.2f ms", elapsed*0.01f);
+		snprintf(text, 16, "%.2f ms", elapsed * 0.01f);
+		#endif
 		#endif
 	}
 
