@@ -109,6 +109,10 @@ void SnakeGame()
 			moveFaster = currentDirection == Left;
 			currentDirection = Left;
 		}
+		else if (HAL_GPIO_ReadPin(JOY_SEL_GPIO_Port, JOY_SEL_Pin))
+		{
+			break;
+		}
 
 		GameState_e gameState = Move(currentDirection);
 

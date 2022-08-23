@@ -1,3 +1,6 @@
+/*
+ * Contains all solutions for a 3 by 3 square.
+ */
 const uint8_t magicArray[] =
 {
 	0b10000000,
