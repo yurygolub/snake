@@ -1,30 +1,14 @@
 #include "menu.h"
-#include "snake.h"
-#include "life.h"
+#include "snake_menu.h"
+#include "life_menu.h"
 
 extern volatile bool timerFlag;
 
 static bool rising = true;
 static uint8_t currentRadius = 0;
 
-typedef struct
-{
-	void (*handler)();
-	char* name;
-}MenuItem;
-
-static void SnakeMenu();
-static void SnakeSettingsMenu();
-static void SnakeSettingEasy();
-static void SnakeSettingMedium();
-static void SnakeSettingHard();
-
-static void LifeMenu();
-
 static void DisplayMenuItems(const MenuItem* items, const uint8_t itemsCount,
 		uint16_t backgroundColor, uint16_t textColor);
-static void ChooseMenuItem(const MenuItem* items, const uint8_t itemsCount,
-		uint16_t backgroundColor, uint16_t textColor, uint16_t cursorColor);
 
 static JOYState_TypeDef JoysticPosition(const uint8_t currentPos, const uint8_t numberOfItems);
 static void EraseCursor(uint8_t xPos, uint8_t yPos, uint8_t radius,
@@ -40,67 +24,10 @@ static const MenuItem globalMenuItems[] =
 
 #define NUMBER_OF_GLOBAL_MENU_ITEMS (sizeof(globalMenuItems) / sizeof(MenuItem))
 
-static const MenuItem snakeMenuItems[] =
-{
-	{ .name = "Play", .handler = SnakeGame },
-	{ .name = "Settings", .handler = SnakeSettingsMenu },
-};
-
-#define NUMBER_OF_SNAKE_MENU_ITEMS (sizeof(snakeMenuItems) / sizeof(MenuItem))
-
-static const MenuItem snakeSettingMenuItems[] =
-{
-	{ .name = "Easy", .handler = SnakeSettingEasy },
-	{ .name = "Medium", .handler = SnakeSettingMedium },
-	{ .name = "Hard", .handler = SnakeSettingHard },
-};
-
-#define NUMBER_OF_SNAKE_SETTING_MENU_ITEMS (sizeof(snakeSettingMenuItems) / sizeof(MenuItem))
-
-static const MenuItem lifeMenuItems[] =
-{
-	{ .name = "Play", .handler = LifeGame },
-};
-
-#define NUMBER_OF_LIFE_MENU_ITEMS (sizeof(lifeMenuItems) / sizeof(MenuItem))
-
 void DisplayMenu()
 {
 	ChooseMenuItem(globalMenuItems, NUMBER_OF_GLOBAL_MENU_ITEMS,
 			LCD_COLOR_GRAY, LCD_COLOR_BLACK, LCD_COLOR_DARKRED);
-}
-
-static void SnakeMenu()
-{
-	ChooseMenuItem(snakeMenuItems, NUMBER_OF_SNAKE_MENU_ITEMS,
-			LCD_COLOR_GRAY, LCD_COLOR_DARKMAGENTA, LCD_COLOR_DARKBLUE);
-}
-
-static void SnakeSettingsMenu()
-{
-	ChooseMenuItem(snakeSettingMenuItems, NUMBER_OF_SNAKE_SETTING_MENU_ITEMS,
-			LCD_COLOR_GRAY, LCD_COLOR_DARKMAGENTA, LCD_COLOR_DARKBLUE);
-}
-
-static void SnakeSettingEasy()
-{
-	Setup(20, 50);
-}
-
-static void SnakeSettingMedium()
-{
-	Setup(15, 100);
-}
-
-static void SnakeSettingHard()
-{
-	Setup(10, 200);
-}
-
-static void LifeMenu()
-{
-	ChooseMenuItem(lifeMenuItems, NUMBER_OF_LIFE_MENU_ITEMS,
-			LCD_COLOR_DARKGRAY, LCD_COLOR_DARKYELLOW, LCD_COLOR_RED);
 }
 
 static void DisplayMenuItems(const MenuItem* items, const uint8_t itemsCount,
@@ -117,7 +44,7 @@ static void DisplayMenuItems(const MenuItem* items, const uint8_t itemsCount,
 	}
 }
 
-static void ChooseMenuItem(const MenuItem* items, const uint8_t itemsCount,
+void ChooseMenuItem(const MenuItem* items, const uint8_t itemsCount,
 		uint16_t backgroundColor, uint16_t textColor, uint16_t cursorColor)
 {
 	DisplayMenuItems(items, itemsCount, backgroundColor, textColor);
@@ -198,6 +125,8 @@ static void EraseCursor(uint8_t xPos, uint8_t yPos, uint8_t radius,
 {
 	BSP_LCD_SetTextColor(backgroundColor);
 	BSP_LCD_FillCircle(xPos, yPos, radius);
+	rising = true;
+	currentRadius = 0;
 }
 
 static void DrawCursor(uint8_t xPos, uint8_t yPos, uint8_t radius,
